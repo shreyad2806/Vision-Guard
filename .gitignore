@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploaded files
+backend/data/uploads/*
+!backend/data/uploads/.gitkeep
+
+# ML datasets and trained models
+ml/data/*
+!ml/data/.gitkeep
+
+ml/models/*
+!ml/models/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
