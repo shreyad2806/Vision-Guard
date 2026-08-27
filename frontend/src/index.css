@@ -511,15 +511,20 @@ img {
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
-.badge--acceptable {
+.badge--acceptable,
+.badge--excellent,
+.badge--good {
   background: var(--green-subtle);
   color: var(--green);
 }
-.badge--degraded {
+.badge--degraded,
+.badge--fair {
   background: var(--yellow-subtle);
   color: var(--yellow);
 }
-.badge--defective {
+.badge--defective,
+.badge--poor,
+.badge--critical {
   background: var(--red-subtle);
   color: var(--red);
 }
@@ -1057,19 +1062,24 @@ img {
   font-weight: 600;
 }
 
-.recommendation-block--acceptable {
+.recommendation-block--acceptable,
+.recommendation-block--excellent,
+.recommendation-block--good {
   background: var(--green-subtle);
   border-color: var(--green);
   color: var(--green);
 }
 
-.recommendation-block--degraded {
+.recommendation-block--degraded,
+.recommendation-block--fair {
   background: var(--yellow-subtle);
   border-color: var(--yellow);
   color: var(--yellow);
 }
 
-.recommendation-block--defective {
+.recommendation-block--defective,
+.recommendation-block--poor,
+.recommendation-block--critical {
   background: var(--red-subtle);
   border-color: var(--red);
   color: var(--red);
