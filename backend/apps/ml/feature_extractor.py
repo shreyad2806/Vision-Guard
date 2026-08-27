@@ -1,7 +1,10 @@
 """OpenCV-based feature extraction from images.
 
-Each function computes a single statistic.  extract_features() returns a
-complete dictionary suitable for the ML model.
+Two extraction modes:
+  1. extract_model_features(img_bgr) — the 5 features used by the ML model
+     (must match ml/train.py exactly: resize 224×224, Canny 100/200).
+  2. extract_all_features(img_bgr) — 12 detailed statistics for the UI
+     (sharpness, brightness, contrast, noise, entropy, saturation, etc.).
 """
 
 from __future__ import annotations
@@ -10,76 +13,73 @@ import cv2
 import numpy as np
 
 
-def compute_sharpness(gray: np.ndarray) -> float:
-    """Variance of the Laplacian — higher means sharper."""
-    laplacian = cv2.Laplacian(gray, cv2.CV_64F)
-    return float(np.var(laplacian))
+# ---------------------------------------------------------------------------
+# Model feature extraction — must match ml/train.py
+# ---------------------------------------------------------------------------
+
+def extract_model_features(img_bgr: np.ndarray) -> dict[str, float]:
+    """Extract the 5 features used by the trained RandomForest.
+
+    Preprocessing matches training exactly:
+      - Resize to 224×224
+      - Grayscale for brightness / contrast / sharpness / edge_density
+      - HSV for saturation
+      - Canny(100, 200) for edge_density
+    """
+    resized = cv2.resize(img_bgr, (224, 224))
+    gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+
+    brightness = float(np.mean(gray))
+    contrast = float(np.std(gray))
+    sharpness = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+
+    hsv = cv2.cvtColor(resized, cv2.COLOR_BGR2HSV)
+    saturation = float(np.mean(hsv[:, :, 1]))
+
+    edges = cv2.Canny(gray, 100, 200)
+    edge_density = float(np.mean(edges > 0))
+
+    return {
+        "brightness": brightness,
+        "contrast": contrast,
+        "sharpness": sharpness,
+        "saturation": saturation,
+        "edge_density": edge_density,
+    }
 
 
-def compute_brightness(gray: np.ndarray) -> float:
-    """Mean grayscale pixel intensity."""
-    return float(np.mean(gray))
-
-
-def compute_contrast(gray: np.ndarray) -> float:
-    """Standard deviation of grayscale pixel intensities."""
-    return float(np.std(gray))
-
+# ---------------------------------------------------------------------------
+# Detailed feature extraction — used for UI statistics and issue detection
+# ---------------------------------------------------------------------------
 
 def compute_noise_estimate(gray: np.ndarray) -> float:
-    """Estimate noise via the median absolute deviation of the Laplacian.
-
-    This is a fast, lightweight approximation commonly used in
-    no-reference image quality assessment.
-    """
     laplacian = cv2.Laplacian(gray, cv2.CV_64F)
     sigma = np.median(np.abs(laplacian)) * 1.4826
     return float(sigma)
 
 
 def compute_entropy(gray: np.ndarray) -> float:
-    """Shannon entropy of the grayscale histogram."""
     hist = cv2.calcHist([gray], [0], None, [256], [0, 256]).flatten()
-    hist = hist / hist.sum()  # normalise to probabilities
-    # Remove zeros to avoid log(0)
+    hist = hist / hist.sum()
     hist = hist[hist > 0]
     return float(abs(-np.sum(hist * np.log2(hist))))
 
 
-def compute_saturation(img_bgr: np.ndarray) -> float:
-    """Mean HSV saturation channel."""
-    hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
-    return float(np.mean(hsv[:, :, 1]))
-
-
 def compute_underexposure_pct(gray: np.ndarray) -> float:
-    """Percentage of pixels with intensity below 30 (very dark)."""
     return float(np.mean(gray < 30) * 100)
 
 
 def compute_overexposure_pct(gray: np.ndarray) -> float:
-    """Percentage of pixels with intensity above 225 (very bright)."""
     return float(np.mean(gray > 225) * 100)
 
 
-def compute_edge_density(gray: np.ndarray) -> float:
-    """Fraction of edge pixels via Canny detection."""
-    edges = cv2.Canny(gray, 50, 150)
-    return float(np.mean(edges > 0) * 100)
-
-
 def compute_dynamic_range(gray: np.ndarray) -> float:
-    """Intensity range between 5th and 95th percentile."""
     p5 = float(np.percentile(gray, 5))
     p95 = float(np.percentile(gray, 95))
     return p95 - p5
 
 
 def compute_colorfulness(img_bgr: np.ndarray) -> float:
-    """Colorfulness metric based on Hasler & Susstrunk.
-
-    Uses the mean and std of the red-green and blue-yellow opponent channels.
-    """
     b, g, r = cv2.split(img_bgr.astype(float))
     rg = np.abs(r - g)
     yb = np.abs(0.5 * (r + g) - b)
@@ -89,12 +89,10 @@ def compute_colorfulness(img_bgr: np.ndarray) -> float:
 
 
 def compute_texture_complexity(gray: np.ndarray) -> float:
-    """Texture complexity via FFT energy in high-frequency bands."""
     f = np.fft.fft2(gray.astype(float))
     fshift = np.fft.fftshift(f)
     h, w = gray.shape
     cy, cx = h // 2, w // 2
-    # Create high-frequency mask (outside inner 20% of spectrum)
     Y, X = np.ogrid[:h, :w]
     radius = min(h, w) * 0.2
     mask = ((Y - cy)**2 + (X - cx)**2) > radius**2
@@ -106,34 +104,25 @@ def compute_texture_complexity(gray: np.ndarray) -> float:
     return float(hf_energy / total_energy * 100)
 
 
-def extract_features(img_bgr: np.ndarray) -> dict[str, float]:
-    """Compute all image statistics and return as a dictionary.
-
-    Parameters
-    ----------
-    img_bgr : np.ndarray
-        Image in BGR colour space (as loaded by cv2.imread).
-
-    Returns
-    -------
-    dict with keys matching the ImageStatistics schema plus additional
-    ML features for quality prediction.
-    """
+def extract_all_features(img_bgr: np.ndarray) -> dict[str, float]:
+    """Compute all image statistics for the UI display."""
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
 
     return {
-        # Core metrics (returned in API responses)
-        "sharpness": round(compute_sharpness(gray), 2),
-        "brightness": round(compute_brightness(gray), 2),
-        "contrast": round(compute_contrast(gray), 2),
+        "sharpness": round(float(cv2.Laplacian(gray, cv2.CV_64F).var()), 2),
+        "brightness": round(float(np.mean(gray)), 2),
+        "contrast": round(float(np.std(gray)), 2),
         "noise_estimate": round(compute_noise_estimate(gray), 2),
         "entropy": round(compute_entropy(gray), 2),
-        "saturation": round(compute_saturation(img_bgr), 2),
-        # Extended features (used by ML model)
+        "saturation": round(float(np.mean(cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)[:, :, 1])), 2),
         "underexposure_pct": round(compute_underexposure_pct(gray), 2),
         "overexposure_pct": round(compute_overexposure_pct(gray), 2),
-        "edge_density": round(compute_edge_density(gray), 2),
+        "edge_density": round(float(np.mean(cv2.Canny(gray, 50, 150) > 0) * 100), 2),
         "dynamic_range": round(compute_dynamic_range(gray), 2),
         "colorfulness": round(compute_colorfulness(img_bgr), 2),
         "texture_complexity": round(compute_texture_complexity(gray), 2),
     }
+
+
+# Keep backward compatibility
+extract_features = extract_all_features

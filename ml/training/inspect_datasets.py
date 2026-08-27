@@ -1,15 +1,15 @@
 """Inspect available datasets and report structure, columns, score ranges."""
 
 import csv
-import os
 from pathlib import Path
 
-DATA_ROOT = Path(__file__).resolve().parent.parent / "data"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DATA_ROOT = PROJECT_ROOT / "datasets" / "extracted"
 
 
 def inspect_kadid():
     """Inspect the KADID-10K dataset."""
-    kadid_root = DATA_ROOT / "kadid10k"
+    kadid_root = DATA_ROOT / "kadid10k" / "kadid10k"
     csv_path = kadid_root / "dmos.csv"
     img_dir = kadid_root / "images"
 
@@ -33,16 +33,21 @@ def inspect_kadid():
 
     # Score statistics
     scores = [float(r["dmos"]) for r in rows]
+    mean_score = sum(scores) / len(scores)
     print(f"  DMOS score range: {min(scores):.3f} - {max(scores):.3f}")
-    print(f"  DMOS score mean: {sum(scores)/len(scores):.3f}")
-    print(f"  DMOS score std: {(sum((s - sum(scores)/len(scores))**2 for s in scores) / len(scores))**0.5:.3f}")
+    print(f"  DMOS score mean: {mean_score:.3f}")
+    print(f"  DMOS score std: {(sum((s - mean_score)**2 for s in scores) / len(scores))**0.5:.3f}")
+
+    # Normalized quality scores
+    norm_scores = [max(0, min(100, (s - 1.0) / 4.0 * 100)) for s in scores]
+    print(f"  Normalized quality range: {min(norm_scores):.1f} - {max(norm_scores):.1f}")
 
     # Reference images
     ref_imgs = set(r["ref_img"] for r in rows)
     print(f"  Unique reference images: {len(ref_imgs)}")
 
     # Distortion types
-    dist_types = set()
+    dist_types: set[str] = set()
     for r in rows:
         fname = r["dist_img"].replace(".png", "")
         parts = fname.split("_")
@@ -51,11 +56,7 @@ def inspect_kadid():
     print(f"  Distortion types: {len(dist_types)} ({sorted(dist_types)[:5]}...)")
 
     # Check image existence
-    missing = 0
-    for r in rows:
-        img_path = img_dir / r["dist_img"]
-        if not img_path.exists():
-            missing += 1
+    missing = sum(1 for r in rows if not (img_dir / r["dist_img"]).exists())
     print(f"  Missing images: {missing}")
 
     print(f"\n  Interpretation: DMOS 1.0 = low quality, DMOS ~5.0 = high quality")
@@ -111,9 +112,13 @@ def inspect_koniq():
     print()
 
 
-if __name__ == "__main__":
+def main():
     inspect_kadid()
     has_koniq = inspect_koniq()
 
     if not has_koniq:
         print("Note: KonIQ-10K not available. Training will use KADID-10K only.")
+
+
+if __name__ == "__main__":
+    main()

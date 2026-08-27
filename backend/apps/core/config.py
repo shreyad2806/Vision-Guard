@@ -17,8 +17,7 @@ class Settings(BaseSettings):
 
     # ML model
     model_path: str = str(Path(__file__).resolve().parent.parent.parent / "models" / "model.joblib")
-    model_version: str = "feature-baseline-v1"
-    model_loaded: bool = False
+    model_version: str = "visionguard-iqa-v1"
 
     # Static files
     upload_url_base: str = "/uploads"

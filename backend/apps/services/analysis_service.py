@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from apps.core.config import settings
 from apps.models.analysis import AnalysisRecord
-from apps.ml.feature_extractor import extract_features
+from apps.ml.feature_extractor import extract_model_features, extract_all_features
 from apps.ml.inference import predict_quality
 
 
@@ -27,17 +27,20 @@ def run_analysis(db: Session, filename: str, image_path: str) -> dict:
     if img is None:
         raise ValueError("Could not decode image file.")
 
-    # 1. Extract real image features
-    features = extract_features(img)
+    # 1. Extract the 5 model features (matches ml/train.py preprocessing)
+    model_features = extract_model_features(img)
 
-    # 2. Run inference (real ML model or temporary fallback)
-    result = predict_quality(features)
+    # 2. Extract all 12 statistics for UI display
+    all_features = extract_all_features(img)
 
-    # 3. Build image URL from stored filename
+    # 3. Run inference (model prediction + issue detection)
+    result = predict_quality(model_features, all_features)
+
+    # 4. Build image URL from stored filename
     stored_name = Path(image_path).name
     image_url = f"{settings.upload_url_base}/{stored_name}"
 
-    # 4. Build response payload
+    # 5. Persist
     analysis_id = uuid.uuid4().hex
     created_at = datetime.now(timezone.utc)
 

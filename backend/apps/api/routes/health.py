@@ -16,8 +16,9 @@ router = APIRouter(tags=["health"])
     description="Returns service health status and whether a trained model is loaded.",
 )
 def health_check() -> HealthResponse:
+    loaded = is_model_loaded()
     return HealthResponse(
         status="healthy",
-        model_loaded=is_model_loaded(),
-        version=get_model_version() if is_model_loaded() else settings.model_version,
+        model_loaded=loaded,
+        version=get_model_version(),
     )
