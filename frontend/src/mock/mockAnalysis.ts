@@ -4,14 +4,15 @@ export const mockAcceptable: AnalysisResult = {
   analysis_id: "ana_001",
   filename: "warehouse_entrance_042.jpg",
   quality_score: 87,
-  quality_label: "ACCEPTABLE",
+  quality_label: "Excellent",
   analysis_confidence: 94,
   issues: [
     {
-      type: "Minor Noise",
+      type: "minor_noise",
+      title: "Minor Noise",
       severity: "LOW",
-      confidence: 72,
-      explanation:
+      confidence: 0.72,
+      description:
         "Slight luminance noise detected in shadow regions. This level of noise is unlikely to affect object detection or classification accuracy.",
     },
   ],
@@ -23,39 +24,50 @@ export const mockAcceptable: AnalysisResult = {
     entropy: 6.82,
     saturation: 41.2,
   },
+  explanations: [
+    "Brightness is within the expected range.",
+    "Contrast is sufficient for visible detail separation.",
+    "Sharpness is sufficient for visible edge detail.",
+    "Saturation is within the expected range for natural color reproduction.",
+    "Edge density is sufficient for structural feature extraction.",
+  ],
   summary:
-    "The image exhibits good overall quality with adequate sharpness and balanced exposure. Minor noise is present in darker regions but does not materially impact downstream visual analysis. The image is suitable for use in monitoring pipelines.",
+    "The image demonstrates excellent overall quality (score: 87/100). Minor issues were noted but do not materially affect quality assessment.",
   created_at: "2026-08-27T09:15:00Z",
   processing_time_ms: 1240,
+  model_version: "visionguard-iqa-v1.1",
 };
 
 export const mockDegraded: AnalysisResult = {
   analysis_id: "ana_002",
   filename: "parking_lot_cam_117.png",
   quality_score: 52,
-  quality_label: "DEGRADED",
+  quality_label: "Fair",
   analysis_confidence: 89,
   issues: [
     {
-      type: "Blur",
+      type: "low_sharpness",
+      title: "Low Sharpness",
       severity: "HIGH",
-      confidence: 91,
-      explanation:
-        "Insufficient edge detail detected across the frame. The image may significantly affect object detection accuracy and should not be used for precision monitoring tasks.",
+      confidence: 0.91,
+      description:
+        "The image appears blurry or lacks sufficient edge detail. Edge information is below the expected threshold for reliable visual analysis.",
     },
     {
-      type: "Underexposure",
+      type: "low_brightness",
+      title: "Low Brightness",
       severity: "MEDIUM",
-      confidence: 84,
-      explanation:
-        "Image brightness is below the recommended threshold. Key visual features in shadowed areas may be lost, reducing reliability of downstream analysis.",
+      confidence: 0.84,
+      description:
+        "The image appears darker than the expected range. Shadow detail may be lost.",
     },
     {
-      type: "Image Noise",
-      severity: "MEDIUM",
-      confidence: 76,
-      explanation:
-        "Moderate chroma and luminance noise detected. This degrades visual clarity and may introduce artifacts in feature extraction pipelines.",
+      type: "low_saturation",
+      title: "Low Saturation",
+      severity: "LOW",
+      confidence: 0.76,
+      description:
+        "Colors appear relatively muted or desaturated. This may affect color-based feature extraction.",
     },
   ],
   statistics: {
@@ -66,46 +78,50 @@ export const mockDegraded: AnalysisResult = {
     entropy: 5.41,
     saturation: 22.8,
   },
+  explanations: [
+    "Brightness is somewhat below the optimal range.",
+    "Image contrast is moderate but below the optimal range.",
+    "Sharpness is significantly below the calibrated threshold. The image may be blurry.",
+    "Image saturation is moderately below the calibrated range.",
+    "Edge density is below the median range for training images.",
+  ],
   summary:
-    "The image shows significant blur and moderate noise with underexposure affecting shadow detail. These conditions may reduce the reliability of downstream computer vision systems. Manual review or image recapture is recommended.",
+    "The image exhibits moderate quality issues (Low Sharpness, Low Brightness, Low Saturation) with a quality score of 52/100. These conditions may reduce the reliability of downstream analysis. Consider image enhancement or manual review.",
   created_at: "2026-08-27T07:42:00Z",
   processing_time_ms: 980,
+  model_version: "visionguard-iqa-v1.1",
 };
 
 export const mockDefective: AnalysisResult = {
   analysis_id: "ana_003",
   filename: "construction_zone_009.webp",
   quality_score: 18,
-  quality_label: "DEFECTIVE",
+  quality_label: "Poor",
   analysis_confidence: 96,
   issues: [
     {
-      type: "Severe Degradation",
+      type: "high_brightness",
+      title: "High Brightness",
       severity: "HIGH",
-      confidence: 97,
-      explanation:
-        "Critical level of visual degradation detected. The image lacks sufficient detail for any meaningful computer vision analysis.",
+      confidence: 0.89,
+      description:
+        "The image may be overexposed. Highlight clipping may have occurred, resulting in loss of detail in bright areas.",
     },
     {
-      type: "Image Corruption",
+      type: "low_sharpness",
+      title: "Low Sharpness",
       severity: "HIGH",
-      confidence: 94,
-      explanation:
-        "Signs of data corruption or transfer errors. Blocking artifacts and discontinuous pixel patterns indicate the file may be partially damaged.",
+      confidence: 0.92,
+      description:
+        "The image appears blurry or lacks sufficient edge detail. Edge information is below the expected threshold for reliable visual analysis.",
     },
     {
-      type: "Overexposure",
+      type: "low_saturation",
+      title: "Low Saturation",
       severity: "HIGH",
-      confidence: 89,
-      explanation:
-        "Large areas of the image are clipped to pure white, resulting in irreversible loss of visual information.",
-    },
-    {
-      type: "Blur",
-      severity: "HIGH",
-      confidence: 92,
-      explanation:
-        "Extreme lack of sharpness across the entire frame. No recoverable edge detail is present.",
+      confidence: 0.87,
+      description:
+        "Colors appear relatively muted or desaturated.",
     },
   ],
   statistics: {
@@ -116,10 +132,18 @@ export const mockDefective: AnalysisResult = {
     entropy: 3.87,
     saturation: 8.1,
   },
+  explanations: [
+    "Brightness exceeds the calibrated range, indicating overexposure.",
+    "Image contrast is below the calibrated range.",
+    "Sharpness is significantly below the calibrated threshold. The image may be blurry.",
+    "Image saturation is well below the calibrated range. Colors are heavily desaturated.",
+    "Edge density is very low, suggesting limited structural content.",
+  ],
   summary:
-    "This image is severely compromised by multiple overlapping defects including corruption artifacts, extreme overexposure, and pervasive blur. The visual data is unreliable and should not be used in any downstream monitoring or analytics pipeline. Immediate recapture from a properly calibrated source is required.",
+    "Significant quality degradation detected (High Brightness, Low Sharpness, Low Saturation) with a quality score of 18/100. Image quality is substantially compromised. Review or recapture is recommended.",
   created_at: "2026-08-26T22:08:00Z",
   processing_time_ms: 1120,
+  model_version: "visionguard-iqa-v1.1",
 };
 
 /** Additional history entries for the history page */
@@ -130,16 +154,17 @@ export const mockHistory: AnalysisResult[] = [
   {
     analysis_id: "ana_004",
     filename: "loading_dock_023.jpg",
-    quality_score: 79,
-    quality_label: "ACCEPTABLE",
+    quality_score: 72,
+    quality_label: "Good",
     analysis_confidence: 91,
     issues: [
       {
-        type: "Overexposure",
+        type: "high_brightness",
+        title: "High Brightness",
         severity: "LOW",
-        confidence: 68,
-        explanation:
-          "Mild highlight clipping in the upper-right quadrant. Main subject area remains well-exposed and analyzable.",
+        confidence: 0.68,
+        description:
+          "Mild highlight clipping in the upper-right quadrant. Main subject area remains well-exposed.",
       },
     ],
     statistics: {
@@ -150,31 +175,41 @@ export const mockHistory: AnalysisResult[] = [
       entropy: 7.01,
       saturation: 38.9,
     },
+    explanations: [
+      "Brightness is somewhat above the optimal range.",
+      "Contrast is sufficient for visible detail separation.",
+      "Sharpness is sufficient for visible edge detail.",
+      "Saturation is within the expected range.",
+      "Edge density is sufficient for structural feature extraction.",
+    ],
     summary:
-      "Generally acceptable quality with minor overexposure in peripheral regions. The primary monitoring area is well-rendered and suitable for downstream analysis.",
+      "The image demonstrates good overall quality (score: 72/100). Minor conditions detected (High Brightness) but are unlikely to significantly affect downstream analysis.",
     created_at: "2026-08-26T15:30:00Z",
     processing_time_ms: 1050,
+    model_version: "visionguard-iqa-v1.1",
   },
   {
     analysis_id: "ana_005",
     filename: "security_cam_feed_088.png",
     quality_score: 41,
-    quality_label: "DEGRADED",
+    quality_label: "Fair",
     analysis_confidence: 87,
     issues: [
       {
-        type: "Blur",
+        type: "low_sharpness",
+        title: "Low Sharpness",
         severity: "HIGH",
-        confidence: 88,
-        explanation:
-          "Motion blur detected from camera vibration. Subject edges are significantly smeared.",
+        confidence: 0.88,
+        description:
+          "The image appears blurry or lacks sufficient edge detail.",
       },
       {
-        type: "Image Noise",
+        type: "low_saturation",
+        title: "Low Saturation",
         severity: "MEDIUM",
-        confidence: 81,
-        explanation:
-          "High ISO noise visible throughout. Grain patterns suggest low-light sensor amplification.",
+        confidence: 0.81,
+        description:
+          "Colors appear relatively muted or desaturated.",
       },
     ],
     statistics: {
@@ -185,16 +220,24 @@ export const mockHistory: AnalysisResult[] = [
       entropy: 5.92,
       saturation: 18.5,
     },
+    explanations: [
+      "Brightness is somewhat below the optimal range.",
+      "Contrast is sufficient for visible detail separation.",
+      "Sharpness is significantly below the calibrated threshold. The image may be blurry.",
+      "Image saturation is moderately below the calibrated range.",
+      "Edge density is below the median range for training images.",
+    ],
     summary:
-      "Motion blur from camera instability combined with high ISO noise significantly degrades image quality. Not recommended for automated analysis without stabilization preprocessing.",
+      "The image exhibits moderate quality issues (Low Sharpness, Low Saturation) with a quality score of 41/100. These conditions may reduce the reliability of downstream analysis. Consider image enhancement or manual review.",
     created_at: "2026-08-25T11:22:00Z",
     processing_time_ms: 940,
+    model_version: "visionguard-iqa-v1.1",
   },
   {
     analysis_id: "ana_006",
     filename: "warehouse_interior_012.jpg",
     quality_score: 91,
-    quality_label: "ACCEPTABLE",
+    quality_label: "Excellent",
     analysis_confidence: 97,
     issues: [],
     statistics: {
@@ -205,31 +248,33 @@ export const mockHistory: AnalysisResult[] = [
       entropy: 7.14,
       saturation: 44.6,
     },
+    explanations: [
+      "Brightness is within the expected range.",
+      "Contrast is sufficient for visible detail separation.",
+      "Sharpness is sufficient for visible edge detail.",
+      "Saturation is within the expected range.",
+      "Edge density is sufficient for structural feature extraction.",
+    ],
     summary:
-      "Excellent image quality with strong edge definition, balanced exposure, and minimal noise. Well-suited for all downstream visual analysis tasks.",
+      "Image quality is excellent with no significant issues detected. The image is well-suited for all downstream analysis tasks.",
     created_at: "2026-08-25T08:05:00Z",
     processing_time_ms: 890,
+    model_version: "visionguard-iqa-v1.1",
   },
   {
     analysis_id: "ana_007",
     filename: "exterior_cam_north_005.png",
-    quality_score: 63,
-    quality_label: "DEGRADED",
+    quality_score: 55,
+    quality_label: "Fair",
     analysis_confidence: 85,
     issues: [
       {
-        type: "Underexposure",
+        type: "low_brightness",
+        title: "Low Brightness",
         severity: "HIGH",
-        confidence: 87,
-        explanation:
-          "Overall scene is significantly underexposed. Critical detail in mid-tones and shadows is lost.",
-      },
-      {
-        type: "Potential Visual Defect",
-        severity: "MEDIUM",
-        confidence: 73,
-        explanation:
-          "Anomalous dark region in the lower-left corner may indicate lens obstruction or sensor defect.",
+        confidence: 0.87,
+        description:
+          "The image appears darker than the expected range. Shadow detail may be lost.",
       },
     ],
     statistics: {
@@ -240,26 +285,26 @@ export const mockHistory: AnalysisResult[] = [
       entropy: 4.88,
       saturation: 27.3,
     },
+    explanations: [
+      "Brightness is somewhat below the optimal range.",
+      "Image contrast is moderate but below the optimal range.",
+      "Sharpness is below the optimal range but some edge detail remains.",
+      "Image saturation is moderately below the calibrated range.",
+      "Edge density is below the median range for training images.",
+    ],
     summary:
-      "Severe underexposure limits the utility of this image for visual monitoring. An anomalous dark region suggests possible hardware obstruction. Recommend checking camera placement and exposure settings.",
+      "The image exhibits moderate quality issues (Low Brightness) with a quality score of 55/100. These conditions may reduce the reliability of downstream analysis. Consider image enhancement or manual review.",
     created_at: "2026-08-24T19:48:00Z",
     processing_time_ms: 1180,
+    model_version: "visionguard-iqa-v1.1",
   },
   {
     analysis_id: "ana_008",
     filename: "traffic_camera_01.jpg",
     quality_score: 82,
-    quality_label: "ACCEPTABLE",
+    quality_label: "Excellent",
     analysis_confidence: 93,
-    issues: [
-      {
-        type: "Minor Noise",
-        severity: "LOW",
-        confidence: 65,
-        explanation:
-          "Faint sensor noise visible in uniform sky regions. Does not impact vehicle detection.",
-      },
-    ],
+    issues: [],
     statistics: {
       sharpness: 76.2,
       brightness: 141.5,
@@ -268,31 +313,41 @@ export const mockHistory: AnalysisResult[] = [
       entropy: 6.94,
       saturation: 36.4,
     },
+    explanations: [
+      "Brightness is within the expected range.",
+      "Contrast is sufficient for visible detail separation.",
+      "Sharpness is sufficient for visible edge detail.",
+      "Saturation is within the expected range.",
+      "Edge density is sufficient for structural feature extraction.",
+    ],
     summary:
-      "Good overall quality with strong lane markings and vehicle outlines. Minor noise in sky area is negligible for traffic monitoring purposes.",
+      "The image demonstrates excellent overall quality (score: 82/100). Minor issues were noted but do not materially affect quality assessment.",
     created_at: "2026-08-24T14:15:00Z",
     processing_time_ms: 1020,
+    model_version: "visionguard-iqa-v1.1",
   },
   {
     analysis_id: "ana_009",
     filename: "factory_floor_cam_003.png",
-    quality_score: 35,
-    quality_label: "DEFECTIVE",
+    quality_score: 28,
+    quality_label: "Poor",
     analysis_confidence: 92,
     issues: [
       {
-        type: "Severe Degradation",
+        type: "low_sharpness",
+        title: "Low Sharpness",
         severity: "HIGH",
-        confidence: 95,
-        explanation:
-        "Image shows extensive compression artifacts rendering fine details unrecognizable.",
+        confidence: 0.89,
+        description:
+          "The image appears blurry or lacks sufficient edge detail.",
       },
       {
-        type: "Blur",
-        severity: "HIGH",
-        confidence: 89,
-        explanation:
-        "Focus failure across the entire frame. No sharp edges detected.",
+        type: "low_saturation",
+        title: "Low Saturation",
+        severity: "MEDIUM",
+        confidence: 0.73,
+        description:
+          "Colors appear relatively muted or desaturated.",
       },
     ],
     statistics: {
@@ -303,31 +358,33 @@ export const mockHistory: AnalysisResult[] = [
       entropy: 4.12,
       saturation: 19.8,
     },
+    explanations: [
+      "Brightness is within the expected range.",
+      "Image contrast is below the calibrated range.",
+      "Sharpness is significantly below the calibrated threshold. The image may be blurry.",
+      "Image saturation is moderately below the calibrated range.",
+      "Edge density is below the median range for training images.",
+    ],
     summary:
-      "Image is severely degraded with compression artifacts and focus failure. Not suitable for any automated inspection tasks.",
+      "Significant quality degradation detected (Low Sharpness, Low Saturation) with a quality score of 28/100. Image quality is substantially compromised. Review or recapture is recommended.",
     created_at: "2026-08-23T16:40:00Z",
     processing_time_ms: 1150,
+    model_version: "visionguard-iqa-v1.1",
   },
   {
     analysis_id: "ana_010",
     filename: "parking_structure_007.jpg",
-    quality_score: 71,
-    quality_label: "DEGRADED",
+    quality_score: 63,
+    quality_label: "Good",
     analysis_confidence: 88,
     issues: [
       {
-        type: "Overexposure",
+        type: "high_brightness",
+        title: "High Brightness",
         severity: "MEDIUM",
-        confidence: 82,
-        explanation:
-        "Sun glare causes highlight clipping in the central area, obscuring parked vehicles.",
-      },
-      {
-        type: "Image Noise",
-        severity: "LOW",
-        confidence: 70,
-        explanation:
-        "Mild luminance noise in shadowed regions beneath the structure.",
+        confidence: 0.82,
+        description:
+          "The image may be overexposed. Highlight clipping may have occurred.",
       },
     ],
     statistics: {
@@ -338,16 +395,24 @@ export const mockHistory: AnalysisResult[] = [
       entropy: 5.78,
       saturation: 31.2,
     },
+    explanations: [
+      "Brightness is somewhat above the optimal range.",
+      "Image contrast is moderate but below the optimal range.",
+      "Sharpness is sufficient for visible edge detail.",
+      "Image saturation is moderately below the calibrated range.",
+      "Edge density is below the median range for training images.",
+    ],
     summary:
-      "Sun glare significantly impacts visibility in the central monitoring zone. Peripheral areas remain analyzable but overall quality is degraded.",
+      "The image demonstrates good overall quality (score: 63/100). Minor conditions detected (High Brightness) but are unlikely to significantly affect downstream analysis.",
     created_at: "2026-08-23T09:05:00Z",
     processing_time_ms: 1080,
+    model_version: "visionguard-iqa-v1.1",
   },
   {
     analysis_id: "ana_011",
     filename: "warehouse_loading_bay_019.png",
     quality_score: 94,
-    quality_label: "ACCEPTABLE",
+    quality_label: "Excellent",
     analysis_confidence: 98,
     issues: [],
     statistics: {
@@ -358,38 +423,41 @@ export const mockHistory: AnalysisResult[] = [
       entropy: 7.28,
       saturation: 42.1,
     },
+    explanations: [
+      "Brightness is within the expected range.",
+      "Contrast is sufficient for visible detail separation.",
+      "Sharpness is sufficient for visible edge detail.",
+      "Saturation is within the expected range.",
+      "Edge density is sufficient for structural feature extraction.",
+    ],
     summary:
-      "Excellent image quality. Sharp focus, balanced lighting, and minimal noise. Ideal for all downstream computer vision tasks.",
+      "Image quality is excellent with no significant issues detected. The image is well-suited for all downstream analysis tasks.",
     created_at: "2026-08-22T21:30:00Z",
     processing_time_ms: 920,
+    model_version: "visionguard-iqa-v1.1",
   },
   {
     analysis_id: "ana_012",
     filename: "gate_entry_cam_015.webp",
-    quality_score: 57,
-    quality_label: "DEGRADED",
+    quality_score: 45,
+    quality_label: "Fair",
     analysis_confidence: 86,
     issues: [
       {
-        type: "Blur",
+        type: "low_sharpness",
+        title: "Low Sharpness",
         severity: "MEDIUM",
-        confidence: 79,
-        explanation:
-        "Slight motion blur on moving subjects. Static background remains acceptable.",
+        confidence: 0.79,
+        description:
+          "The image appears blurry or lacks sufficient edge detail.",
       },
       {
-        type: "Underexposure",
+        type: "low_brightness",
+        title: "Low Brightness",
         severity: "MEDIUM",
-        confidence: 77,
-        explanation:
-        "Low ambient light conditions result in reduced contrast and detail loss in darker areas.",
-      },
-      {
-        type: "Image Noise",
-        severity: "LOW",
-        confidence: 64,
-        explanation:
-        "Chroma noise visible in uniform colored surfaces.",
+        confidence: 0.77,
+        description:
+          "The image appears darker than the expected range. Shadow detail may be lost.",
       },
     ],
     statistics: {
@@ -400,26 +468,26 @@ export const mockHistory: AnalysisResult[] = [
       entropy: 5.53,
       saturation: 24.7,
     },
+    explanations: [
+      "Brightness is somewhat below the optimal range.",
+      "Image contrast is moderate but below the optimal range.",
+      "Sharpness is below the optimal range but some edge detail remains.",
+      "Image saturation is moderately below the calibrated range.",
+      "Edge density is below the median range for training images.",
+    ],
     summary:
-      "Multiple quality issues from low-light conditions reduce image reliability. Subject identification may be compromised for moving objects.",
+      "The image exhibits moderate quality issues (Low Sharpness, Low Brightness) with a quality score of 45/100. These conditions may reduce the reliability of downstream analysis. Consider image enhancement or manual review.",
     created_at: "2026-08-22T17:55:00Z",
     processing_time_ms: 1010,
+    model_version: "visionguard-iqa-v1.1",
   },
   {
     analysis_id: "ana_013",
     filename: "server_room_cam_002.jpg",
     quality_score: 88,
-    quality_label: "ACCEPTABLE",
+    quality_label: "Excellent",
     analysis_confidence: 95,
-    issues: [
-      {
-        type: "Minor Noise",
-        severity: "LOW",
-        confidence: 58,
-        explanation:
-        "Negligible noise in uniform ceiling panels. No impact on equipment monitoring.",
-      },
-    ],
+    issues: [],
     statistics: {
       sharpness: 80.3,
       brightness: 125.8,
@@ -428,31 +496,41 @@ export const mockHistory: AnalysisResult[] = [
       entropy: 7.06,
       saturation: 39.8,
     },
+    explanations: [
+      "Brightness is within the expected range.",
+      "Contrast is sufficient for visible detail separation.",
+      "Sharpness is sufficient for visible edge detail.",
+      "Saturation is within the expected range.",
+      "Edge density is sufficient for structural feature extraction.",
+    ],
     summary:
-      "High-quality capture suitable for equipment monitoring and thermal overlay alignment. Minor noise is well within acceptable thresholds.",
+      "The image demonstrates excellent overall quality (score: 88/100). Minor issues were noted but do not materially affect quality assessment.",
     created_at: "2026-08-22T10:12:00Z",
     processing_time_ms: 960,
+    model_version: "visionguard-iqa-v1.1",
   },
   {
     analysis_id: "ana_014",
     filename: "construction_perimeter_041.png",
     quality_score: 12,
-    quality_label: "DEFECTIVE",
+    quality_label: "Critical",
     analysis_confidence: 98,
     issues: [
       {
-        type: "Image Corruption",
+        type: "low_brightness",
+        title: "Low Brightness",
         severity: "HIGH",
-        confidence: 99,
-        explanation:
-        "File header corruption detected. Image data is partially unreadable.",
+        confidence: 0.95,
+        description:
+          "The image appears darker than the expected range. Shadow detail may be lost.",
       },
       {
-        type: "Severe Degradation",
+        type: "low_saturation",
+        title: "Low Saturation",
         severity: "HIGH",
-        confidence: 97,
-        explanation:
-        "Complete loss of structural detail. No usable visual information present.",
+        confidence: 0.97,
+        description:
+          "Colors appear relatively muted or desaturated.",
       },
     ],
     statistics: {
@@ -463,10 +541,18 @@ export const mockHistory: AnalysisResult[] = [
       entropy: 2.91,
       saturation: 4.2,
     },
+    explanations: [
+      "Brightness is somewhat below the optimal range.",
+      "Image contrast is below the calibrated range.",
+      "Sharpness is significantly below the calibrated threshold. The image may be blurry.",
+      "Image saturation is well below the calibrated range. Colors are heavily desaturated.",
+      "Edge density is very low, suggesting limited structural content.",
+    ],
     summary:
-        "File is critically corrupted and contains no usable visual data. The source camera or storage medium should be inspected immediately.",
+      "Image quality is critically degraded (score: 12/100). The image is unreliable for automated analysis. Recapture or manual review is required.",
     created_at: "2026-08-21T23:18:00Z",
     processing_time_ms: 1340,
+    model_version: "visionguard-iqa-v1.1",
   },
 ];
 

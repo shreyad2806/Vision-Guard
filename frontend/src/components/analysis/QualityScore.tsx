@@ -10,23 +10,31 @@ interface QualityScoreProps {
 
 function labelColor(label: QualityLabel): string {
   switch (label) {
-    case "ACCEPTABLE":
+    case "Excellent":
       return "var(--green)";
-    case "DEGRADED":
+    case "Good":
+      return "var(--blue, #3b82f6)";
+    case "Fair":
       return "var(--yellow)";
-    case "DEFECTIVE":
+    case "Poor":
+      return "var(--orange, #f97316)";
+    case "Critical":
       return "var(--red)";
   }
 }
 
 function labelMessage(label: QualityLabel): string {
   switch (label) {
-    case "ACCEPTABLE":
-      return "Image quality is suitable for downstream visual analysis.";
-    case "DEGRADED":
-      return "Quality issues detected that may affect downstream analysis.";
-    case "DEFECTIVE":
-      return "Significant visual degradation detected. Review or recapture is recommended.";
+    case "Excellent":
+      return "Image quality is suitable for automated analysis.";
+    case "Good":
+      return "Image quality is generally reliable, with minor degradation.";
+    case "Fair":
+      return "Image quality is usable but some degradation may affect downstream analysis.";
+    case "Poor":
+      return "Image quality is significantly degraded. Review or recapture is recommended.";
+    case "Critical":
+      return "Image quality is critically degraded and unreliable for automated analysis.";
   }
 }
 

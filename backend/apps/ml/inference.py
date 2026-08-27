@@ -1,12 +1,11 @@
-"""Model inference layer — bridges features → quality decision.
+"""Model inference layer: calibrated features -> quality decision.
 
-The trained RandomForestRegressor predicts a raw DMOS score from KADID-10K
-(range ~1.0 to ~4.93, higher = better quality).  This module:
-
-  1. Builds the 5-element feature vector matching the training order.
-  2. Runs model.predict() to get raw DMOS.
-  3. Maps DMOS → 0–100 quality score.
-  4. Derives a quality label, issues list, summary, and recommendation.
+Pipeline:
+  1. Build feature vector from extracted features.
+  2. Run model.predict() to get raw prediction.
+  3. Apply IsotonicRegression calibrator to get calibrated 0-100 score.
+  4. Clip to [0, 100].
+  5. Derive quality label, issues, explanations, and recommendation.
 """
 
 from __future__ import annotations
@@ -15,252 +14,44 @@ import time
 
 import numpy as np
 
-from apps.ml.model_loader import get_model, get_feature_names
-
-# ---------------------------------------------------------------------------
-# DMOS → quality thresholds
-# DMOS range: 1.0 (worst) ~ 4.93 (best)  →  mapped to 0–100
-# Quality labels (matching frontend expectations):
-#   >= 75  →  ACCEPTABLE
-#   >= 45  →  DEGRADED
-#   <  45  →  DEFECTIVE
-# ---------------------------------------------------------------------------
-
-_THRESHOLD_ACCEPTABLE = 75
-_THRESHOLD_DEGRADED = 45
-
-# KADID-10K DMOS range
-_DMOS_MIN = 1.0
-_DMOS_MAX = 5.0
-
-
-def _dmos_to_score(dmos: float) -> int:
-    """Map raw DMOS prediction to a 0–100 quality score."""
-    normalised = (dmos - _DMOS_MIN) / (_DMOS_MAX - _DMOS_MIN) * 100.0
-    return int(round(max(0.0, min(100.0, normalised))))
-
-
-def _label_from_score(score: int) -> str:
-    if score >= _THRESHOLD_ACCEPTABLE:
-        return "ACCEPTABLE"
-    if score >= _THRESHOLD_DEGRADED:
-        return "DEGRADED"
-    return "DEFECTIVE"
-
-
-# ---------------------------------------------------------------------------
-# Issue detection — rule-based, derived from extracted features
-# ---------------------------------------------------------------------------
-
-def _detect_issues(features: dict[str, float]) -> list[dict]:
-    """Identify specific quality issues from extracted features."""
-    issues: list[dict] = []
-
-    brightness = features.get("brightness", 128)
-    contrast = features.get("contrast", 50)
-    sharpness = features.get("sharpness", 100)
-    saturation = features.get("saturation", 50)
-    edge_density = features.get("edge_density", 0.05)
-
-    # Blur / low sharpness
-    if sharpness < 50:
-        severity = "HIGH" if sharpness < 15 else "MEDIUM"
-        conf = min(0.99, 0.6 + (50 - sharpness) / 80)
-        issues.append({
-            "type": "Low Sharpness",
-            "severity": severity,
-            "confidence": round(conf, 2),
-            "explanation": (
-                "The image may contain blur or insufficient detail. "
-                "Edge information is below the expected threshold for reliable analysis."
-            ),
-        })
-
-    # Underexposure
-    if brightness < 60:
-        severity = "HIGH" if brightness < 30 else "MEDIUM"
-        conf = min(0.99, 0.6 + (60 - brightness) / 80)
-        issues.append({
-            "type": "Low Brightness",
-            "severity": severity,
-            "confidence": round(conf, 2),
-            "explanation": (
-                "The image appears darker than expected. "
-                "Key visual features in shadowed areas may be lost."
-            ),
-        })
-
-    # Overexposure
-    if brightness > 200:
-        severity = "HIGH" if brightness > 230 else "MEDIUM"
-        conf = min(0.99, 0.6 + (brightness - 200) / 60)
-        issues.append({
-            "type": "High Brightness",
-            "severity": severity,
-            "confidence": round(conf, 2),
-            "explanation": (
-                "The image may be overexposed. "
-                "Highlight clipping may have occurred."
-            ),
-        })
-
-    # Low contrast
-    if contrast < 25:
-        severity = "HIGH" if contrast < 12 else "MEDIUM"
-        conf = min(0.99, 0.6 + (25 - contrast) / 40)
-        issues.append({
-            "type": "Low Contrast",
-            "severity": severity,
-            "confidence": round(conf, 2),
-            "explanation": (
-                "The image has limited separation between light and dark regions. "
-                "Dynamic range may be too compressed for reliable analysis."
-            ),
-        })
-
-    # Low saturation
-    if saturation < 15:
-        conf = min(0.99, 0.5 + (15 - saturation) / 30)
-        issues.append({
-            "type": "Low Saturation",
-            "severity": "LOW",
-            "confidence": round(conf, 2),
-            "explanation": (
-                "Colors appear relatively muted. "
-                "This may affect color-based feature extraction."
-            ),
-        })
-
-    # High edge density (can indicate noise or overly busy scene)
-    if edge_density > 0.25:
-        conf = min(0.99, 0.5 + (edge_density - 0.25) / 0.3)
-        issues.append({
-            "type": "High Edge Density",
-            "severity": "LOW",
-            "confidence": round(conf, 2),
-            "explanation": (
-                "The image contains a high amount of visual detail or texture. "
-                "This may indicate noise or an overly complex scene."
-            ),
-        })
-
-    return issues
-
-
-# ---------------------------------------------------------------------------
-# Summary and recommendation
-# ---------------------------------------------------------------------------
-
-def _recommendation(label: str) -> str:
-    if label == "ACCEPTABLE":
-        return "Safe for downstream analysis."
-    if label == "DEGRADED":
-        return "Use with caution or consider image enhancement."
-    return "Recapture the image or perform manual review before downstream use."
-
-
-def _summary(label: str, issues: list[dict], score: int) -> str:
-    if label == "ACCEPTABLE" and not issues:
-        return (
-            "Image quality is suitable for downstream visual analysis. "
-            "The image meets all quality thresholds for automated processing."
-        )
-    if label == "ACCEPTABLE":
-        return (
-            f"The image demonstrates acceptable overall visual quality (score: {score}/100). "
-            "Minor issues were detected but are unlikely to significantly affect "
-            "downstream computer vision analysis."
-        )
-    if label == "DEGRADED":
-        if issues:
-            types = ", ".join(i["type"] for i in issues)
-            return (
-                f"The image exhibits degraded quality ({types}). "
-                "These conditions may reduce the reliability of downstream analysis. "
-                "Manual review or image enhancement is recommended."
-            )
-        return (
-            f"The image quality is below the acceptable threshold (score: {score}/100). "
-            "While no specific defects were detected, the overall quality may "
-            "reduce the reliability of downstream analysis. "
-            "Manual review or image enhancement is recommended."
-        )
-    return (
-        f"Significant visual degradation detected (score: {score}/100). "
-        "Image quality is critically low and unsuitable for automated analysis. "
-        "Recapture or manual review is required."
-    )
+from apps.ml.model_loader import get_model, get_feature_names, get_calibrator, get_metadata, get_calibration
+from apps.ml.calibration import (
+    apply_calibration,
+    get_quality_assessment,
+    get_quality_recommendation,
+    get_quality_summary,
+)
+from apps.ml.issue_detector import detect_issues
 
 
 # ---------------------------------------------------------------------------
 # Confidence estimation via tree variance
 # ---------------------------------------------------------------------------
+def _estimate_confidence(model, vector: np.ndarray) -> float:
+    """Estimate confidence from individual tree predictions.
 
-def _estimate_confidence(model, vector_scaled: np.ndarray) -> float:
-    """Estimate confidence from individual tree predictions."""
+    Low disagreement among trees -> high confidence.
+    Returns confidence in 0-100 scale.
+    """
     try:
         if hasattr(model, "estimators_"):
             tree_preds = np.array([
-                tree.predict(vector_scaled)[0]
+                tree.predict(vector)[0]
                 for tree in model.estimators_
             ])
-            tree_preds = np.clip(tree_preds, _DMOS_MIN, _DMOS_MAX)
             std = float(np.std(tree_preds))
-            # Low std → high confidence.  std of ~0.3 → ~0.95, std of ~1.5 → ~0.65
-            return round(max(0.5, min(0.99, 1.0 - std / 3.0)), 3)
+            # Map std to confidence: std ~0 → 100, std ~5 → 50
+            confidence = max(50.0, min(99.0, 100.0 - std * 10.0))
+            return round(confidence, 1)
     except Exception:
         pass
-    return 0.75
+    return 75.0
 
 
 # ---------------------------------------------------------------------------
-# Main inference function
+# Rule-based fallback when no model is loaded
 # ---------------------------------------------------------------------------
-
-def predict_quality(model_features: dict[str, float], all_features: dict[str, float]) -> dict:
-    """Run inference and return the full analysis result.
-
-    Parameters
-    ----------
-    model_features : dict with the 5 keys matching training
-        (brightness, contrast, sharpness, saturation, edge_density).
-    all_features : dict with all 12 statistics for UI display.
-    """
-    start = time.perf_counter()
-    model = get_model()
-    feature_names = get_feature_names()
-
-    if model is not None and feature_names:
-        # ---- ML model path ----
-        vector = np.array([[model_features.get(k, 0.0) for k in feature_names]])
-        raw_dmos = float(model.predict(vector)[0])
-        score = _dmos_to_score(raw_dmos)
-        confidence = _estimate_confidence(model, vector)
-    else:
-        # ---- Rule-based fallback ----
-        score = _fallback_score(model_features)
-        confidence = 0.70
-        raw_dmos = _DMOS_MIN + score / 100.0 * (_DMOS_MAX - _DMOS_MIN)
-
-    label = _label_from_score(score)
-    issues = _detect_issues(model_features)
-    rec = _recommendation(label)
-    summ = _summary(label, issues, score)
-    elapsed_ms = int((time.perf_counter() - start) * 1000)
-
-    return {
-        "quality_score": score,
-        "quality_label": label,
-        "analysis_confidence": round(confidence * 100, 1),
-        "issues": issues,
-        "statistics": all_features,
-        "summary": summ,
-        "recommendation": rec,
-        "processing_time_ms": elapsed_ms,
-    }
-
-
-def _fallback_score(features: dict[str, float]) -> int:
+def _fallback_score(features: dict[str, float]) -> float:
     """Simple weighted score when no model is loaded."""
     weights = {
         "sharpness": 0.30,
@@ -282,4 +73,206 @@ def _fallback_score(features: dict[str, float]) -> int:
         val = features.get(key, lo)
         normed = max(0.0, min(1.0, (val - lo) / (hi - lo) if hi > lo else 0.0))
         total += normed * weight
-    return int(round(total * 100))
+    return total * 100.0
+
+
+# ---------------------------------------------------------------------------
+# Main inference function
+# ---------------------------------------------------------------------------
+def predict_quality(
+    model_features: dict[str, float],
+    all_features: dict[str, float],
+) -> dict:
+    """Run calibrated inference and return the full analysis result.
+
+    Parameters
+    ----------
+    model_features : dict with the keys matching training order
+        (brightness, contrast, sharpness, saturation, edge_density).
+    all_features : dict with all 12+ statistics for UI display.
+
+    Returns
+    -------
+    dict with quality_score, quality_label, raw_prediction, issues,
+    metrics, explanations, recommendation, confidence, processing_time_ms, etc.
+    """
+    start = time.perf_counter()
+    model = get_model()
+    feature_names = get_feature_names()
+    calibrator = get_calibrator()
+    metadata = get_metadata()
+    calibration_meta = get_calibration()
+
+    raw_prediction = None
+
+    if model is not None and feature_names:
+        # ---- ML model path ----
+        vector = np.array([[model_features.get(k, 0.0) for k in feature_names]])
+
+        # Guard against NaN/Inf in features
+        if np.any(np.isnan(vector)) or np.any(np.isinf(vector)):
+            vector = np.nan_to_num(vector, nan=0.0, posinf=0.0, neginf=0.0)
+
+        raw_prediction = float(model.predict(vector)[0])
+
+        # Guard against NaN prediction
+        if np.isnan(raw_prediction) or np.isinf(raw_prediction):
+            raw_prediction = 50.0
+
+        confidence = _estimate_confidence(model, vector)
+    else:
+        # ---- Rule-based fallback ----
+        raw_prediction = _fallback_score(model_features)
+        confidence = 70.0
+
+    # --- Step 1: Apply calibration (raw prediction → 0-100) ---
+    # Build calibration meta for the calibrator
+    cal_meta = None
+    if calibration_meta:
+        cal_meta = {
+            "pred_min": calibration_meta.get("pred_min", 0.0),
+            "pred_max": calibration_meta.get("pred_max", 100.0),
+        }
+    elif metadata and "calibration" in metadata:
+        cal_meta = metadata["calibration"]
+
+    quality_score = apply_calibration(raw_prediction, calibrator, cal_meta)
+
+    # --- Step 2: Quality assessment ---
+    assessment = get_quality_assessment(quality_score)
+
+    # --- Step 3: Detect issues from features ---
+    feature_stats = None
+    if metadata and "feature_statistics" in metadata:
+        feature_stats = {"feature_thresholds": _build_thresholds_from_stats(metadata["feature_statistics"])}
+    issues = detect_issues(all_features, feature_stats)
+
+    # --- Step 4: Generate explanations ---
+    explanations = _generate_explanations(all_features, feature_stats)
+
+    # --- Step 5: Recommendation and summary ---
+    recommendation = get_quality_recommendation(quality_score)
+    summary = get_quality_summary(quality_score, assessment, issues)
+
+    elapsed_ms = int((time.perf_counter() - start) * 1000)
+
+    return {
+        "quality_score": int(round(quality_score)),
+        "quality_label": assessment["label"],
+        "quality_assessment": assessment,
+        "analysis_confidence": round(confidence, 1),
+        "raw_prediction": round(raw_prediction, 4),
+        "issues": issues,
+        "metrics": all_features,
+        "statistics": all_features,
+        "explanations": explanations,
+        "summary": summary,
+        "recommendation": recommendation,
+        "processing_time_ms": elapsed_ms,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+def _build_thresholds_from_stats(feature_statistics: dict) -> dict:
+    """Build issue detection thresholds from training feature statistics."""
+    thresholds = {}
+    for fname, stats in feature_statistics.items():
+        entry = {}
+        if "p5" in stats:
+            entry["p5"] = stats["p5"]
+        if "p10" in stats:
+            entry["p10"] = stats["p10"]
+        else:
+            # Compute from available data
+            if "min" in stats and "max" in stats:
+                entry["p10"] = stats.get("p10", stats.get("min", 0))
+        if "p90" in stats:
+            entry["p90"] = stats["p90"]
+        if "p95" in stats:
+            entry["p95"] = stats["p95"]
+        if "p25" in stats:
+            entry["optimal_low"] = stats["p25"]
+        if "p75" in stats:
+            entry["optimal_high"] = stats["p75"]
+        thresholds[fname] = entry
+    return thresholds
+
+
+def _generate_explanations(
+    features: dict[str, float], feature_stats: dict | None = None
+) -> list[str]:
+    """Generate per-feature explanations."""
+    explanations: list[str] = []
+    br = features.get("brightness", 128.0)
+    co = features.get("contrast", 50.0)
+    sh = features.get("sharpness", 100.0)
+    sa = features.get("saturation", 50.0)
+    ed = features.get("edge_density", 0.05)
+
+    # Use thresholds from stats or defaults
+    bt = {}
+    ct_val = 18.0
+    st_val = 100.0
+    sat_val = 15.0
+    et_val = 0.03
+
+    if feature_stats and "feature_thresholds" in feature_stats:
+        t = feature_stats["feature_thresholds"]
+        bt = t.get("brightness", {})
+        ct_val = t.get("contrast", {}).get("p10", 18.0)
+        st_val = t.get("sharpness", {}).get("p10", 100.0)
+        sat_val = t.get("saturation", {}).get("p10", 15.0)
+        et_val = t.get("edge_density", {}).get("p10", 3.0)
+
+    b_low = bt.get("p10", 55.0)
+    b_high = bt.get("p90", 190.0)
+    b_opt_lo = bt.get("optimal_low", 80.0)
+    b_opt_hi = bt.get("optimal_high", 170.0)
+
+    # Brightness
+    if br < b_low:
+        explanations.append("Brightness is below the calibrated range, indicating underexposure.")
+    elif br > b_high:
+        explanations.append("Brightness exceeds the calibrated range, indicating overexposure.")
+    elif br < b_opt_lo:
+        explanations.append("Brightness is somewhat below the optimal range.")
+    elif br > b_opt_hi:
+        explanations.append("Brightness is somewhat above the optimal range.")
+    else:
+        explanations.append("Brightness is within the expected range.")
+
+    # Contrast
+    if co < ct_val:
+        explanations.append("Image contrast is below the calibrated range, limiting separation between light and dark regions.")
+    elif co < 38.0:
+        explanations.append("Image contrast is moderate but below the optimal range.")
+    else:
+        explanations.append("Contrast is sufficient for visible detail separation.")
+
+    # Sharpness
+    if sh < st_val:
+        explanations.append("Sharpness is significantly below the calibrated threshold. The image may be blurry.")
+    elif sh < 250.0:
+        explanations.append("Sharpness is below the optimal range but some edge detail remains.")
+    else:
+        explanations.append("Sharpness is sufficient for visible edge detail.")
+
+    # Saturation
+    if sa < sat_val:
+        explanations.append("Image saturation is well below the calibrated range. Colors are heavily desaturated.")
+    elif sa < 35.0:
+        explanations.append("Image saturation is moderately below the calibrated range.")
+    else:
+        explanations.append("Saturation is within the expected range for natural color reproduction.")
+
+    # Edge density
+    if ed < et_val:
+        explanations.append("Edge density is very low, suggesting limited structural content.")
+    elif ed < 9.0:
+        explanations.append("Edge density is below the median range for training images.")
+    else:
+        explanations.append("Edge density is sufficient for structural feature extraction.")
+
+    return explanations

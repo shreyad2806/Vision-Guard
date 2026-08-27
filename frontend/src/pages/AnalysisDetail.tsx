@@ -62,11 +62,15 @@ function inferFormat(filename: string): string {
 
 function recommendationText(label: QualityLabel): string {
   switch (label) {
-    case "ACCEPTABLE":
-      return "Safe for downstream analysis";
-    case "DEGRADED":
-      return "Use with caution or consider image enhancement";
-    case "DEFECTIVE":
+    case "Excellent":
+      return "Image quality is suitable for automated analysis";
+    case "Good":
+      return "Image quality is generally reliable, with minor degradation";
+    case "Fair":
+      return "Consider image enhancement for improved analysis";
+    case "Poor":
+      return "Review or recapture image";
+    case "Critical":
       return "Recapture the image or perform manual review before downstream use";
   }
 }
@@ -169,14 +173,14 @@ export default function AnalysisDetail() {
     fetchResult();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Loading State ──
+  // -- Loading State --
   if (loading) {
     return (
       <div>
         <div className="page-header">
           <h1 className="page-header__title">Analysis Details</h1>
           <p className="page-header__subtitle">
-            Loading analysis details…
+            Loading analysis details...
           </p>
         </div>
         <DetailSkeleton />
@@ -184,7 +188,7 @@ export default function AnalysisDetail() {
     );
   }
 
-  // ── Error State ──
+  // -- Error State --
   if (error && error !== "not_found") {
     return (
       <div>
@@ -207,7 +211,7 @@ export default function AnalysisDetail() {
     );
   }
 
-  // ── Not Found State ──
+  // -- Not Found State --
   if (error === "not_found" || (!result && !loading)) {
     return <NotFoundState />;
   }
@@ -218,13 +222,13 @@ export default function AnalysisDetail() {
 
   return (
     <div>
-      {/* ── Back Link ── */}
+      {/* Back Link */}
       <Link to="/history" className="back-link">
         <ArrowLeft size={15} />
         Back to Analysis History
       </Link>
 
-      {/* ── Page Header ── */}
+      {/* Page Header */}
       <div className="page-header">
         <div className="page-header__top-row">
           <div>
@@ -239,7 +243,7 @@ export default function AnalysisDetail() {
         </div>
       </div>
 
-      {/* ── Two-Column: Image Inspection + Quality Assessment ── */}
+      {/* Two-Column: Image Inspection + Quality Assessment */}
       <div className="detail-grid">
         {/* Left: Image Inspection Panel */}
         <div className="card">
@@ -306,7 +310,7 @@ export default function AnalysisDetail() {
         />
       </div>
 
-      {/* ── Detected Issues ── */}
+      {/* Detected Issues */}
       <div className="results-full">
         <div className="card">
           <div className="card__heading">
@@ -345,17 +349,17 @@ export default function AnalysisDetail() {
         </div>
       </div>
 
-      {/* ── Image Quality Metrics ── */}
+      {/* Image Quality Metrics */}
       <div className="results-full">
         <ImageStatistics statistics={result.statistics} />
       </div>
 
-      {/* ── Decision Explanation ── */}
+      {/* Decision Explanation */}
       <div className="results-full">
         <FeatureInterpretation result={result} />
       </div>
 
-      {/* ── Quality Assessment Summary ── */}
+      {/* Quality Assessment Summary */}
       <div className="results-full">
         <div className="card">
           <div className="card__heading">
@@ -374,7 +378,7 @@ export default function AnalysisDetail() {
         </div>
       </div>
 
-      {/* ── Analysis Metadata ── */}
+      {/* Analysis Metadata */}
       <div className="results-full">
         <div className="card">
           <div className="card__heading">
@@ -442,7 +446,9 @@ export default function AnalysisDetail() {
                 />
                 Model Version
               </span>
-              <span className="metadata-item__value">v1.0.0</span>
+              <span className="metadata-item__value">
+                {result.model_version ?? "v1.1.0"}
+              </span>
             </div>
           </div>
         </div>

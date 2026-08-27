@@ -84,6 +84,9 @@ async def analyze_image(
 
 # ---------- GET /analyses ----------
 
+# Valid quality labels for filtering
+_VALID_LABELS = {"Excellent", "Good", "Fair", "Poor", "Critical"}
+
 
 @router.get(
     "/analyses",
@@ -94,12 +97,15 @@ async def analyze_image(
 def get_analyses(
     limit: int = Query(50, ge=1, le=200, description="Max results to return"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
-    quality_label: str | None = Query(None, description="Filter by ACCEPTABLE / DEGRADED / DEFECTIVE"),
+    quality_label: str | None = Query(
+        None,
+        description="Filter by quality label (Excellent, Good, Fair, Poor, Critical)",
+    ),
     db: Session = Depends(get_db),
 ):
     q = db.query(AnalysisRecord).order_by(AnalysisRecord.created_at.desc())
     if quality_label:
-        q = q.filter(AnalysisRecord.quality_label == quality_label.upper())
+        q = q.filter(AnalysisRecord.quality_label == quality_label.capitalize())
     records = q.offset(offset).limit(limit).all()
     return [_record_to_response(r) for r in records]
 
@@ -114,7 +120,11 @@ def get_analyses(
     description="Return the full stored analysis for a given ID.",
 )
 def get_analysis(analysis_id: str, db: Session = Depends(get_db)):
-    record = db.query(AnalysisRecord).filter(AnalysisRecord.analysis_id == analysis_id).first()
+    record = (
+        db.query(AnalysisRecord)
+        .filter(AnalysisRecord.analysis_id == analysis_id)
+        .first()
+    )
     if record is None:
         raise HTTPException(status_code=404, detail="Analysis not found.")
     return _record_to_response(record)

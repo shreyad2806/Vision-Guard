@@ -8,22 +8,38 @@ from pydantic import BaseModel, Field
 
 
 class QualityLabel(str, Enum):
-    ACCEPTABLE = "ACCEPTABLE"
-    DEGRADED = "DEGRADED"
-    DEFECTIVE = "DEFECTIVE"
+    Excellent = "Excellent"
+    Good = "Good"
+    Fair = "Fair"
+    Poor = "Poor"
+    Critical = "Critical"
 
 
 class Severity(str, Enum):
     LOW = "LOW"
     MEDIUM = "MEDIUM"
     HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
 
 
 class Issue(BaseModel):
-    type: str = Field(..., description="Detected issue type, e.g. 'Blur', 'Noise'")
+    type: str = Field(..., description="Detected issue type, e.g. 'low_brightness'")
+    title: str = Field(default="", description="Human-readable issue title")
     severity: Severity = Field(..., description="LOW, MEDIUM, or HIGH")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence 0–1")
-    explanation: str = Field(..., description="Human-readable explanation")
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence 0-1")
+    description: str = Field(
+        default="",
+        description="Detailed description of the issue",
+    )
+    explanation: str = Field(
+        default="",
+        description="Human-readable explanation (alias for description)",
+    )
+
+
+class QualityAssessment(BaseModel):
+    label: str = Field(..., description="Quality label: Excellent, Good, Fair, Poor, Critical")
+    status: str = Field(..., description="Lowercase status string")
 
 
 class ImageStatistics(BaseModel):
@@ -48,15 +64,30 @@ class AnalysisResponse(BaseModel):
     filename: str
     image_url: str = Field(default="", description="Relative URL to access the uploaded image")
     quality_score: int = Field(..., ge=0, le=100)
-    quality_label: QualityLabel
-    analysis_confidence: float = Field(..., ge=0.0, le=100.0, description="Overall confidence in the assessment")
+    quality_label: str = Field(
+        ...,
+        description="Quality label: Excellent, Good, Fair, Poor, Critical",
+    )
+    quality_assessment: QualityAssessment = Field(
+        default_factory=lambda: QualityAssessment(label="Fair", status="fair"),
+        description="Structured quality assessment with label and status",
+    )
+    analysis_confidence: float = Field(
+        ..., ge=0.0, le=100.0, description="Overall confidence in the assessment"
+    )
+    raw_prediction: float | None = Field(
+        default=None, description="Raw DMOS prediction from the model"
+    )
     issues: list[Issue]
     statistics: ImageStatistics
+    explanations: list[str] = Field(
+        default_factory=list, description="Per-feature explanations"
+    )
     summary: str
     recommendation: str = Field(default="", description="Recommended action")
     created_at: str = Field(..., description="ISO 8601 datetime string")
     processing_time_ms: int = Field(..., description="Processing time in milliseconds")
-    model_version: str = Field(default="feature-baseline-v1", description="ML model version identifier")
+    model_version: str = Field(default="visionguard-iqa-v1.1", description="ML model version identifier")
 
 
 class HealthResponse(BaseModel):

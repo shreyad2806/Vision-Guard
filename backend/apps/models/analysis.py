@@ -25,11 +25,15 @@ class AnalysisRecord(Base):
     statistics_json: Mapped[str] = mapped_column(Text, default="{}")
     summary: Mapped[str] = mapped_column(Text, default="")
     recommendation: Mapped[str] = mapped_column(Text, default="")
+    explanations_json: Mapped[str] = mapped_column(Text, default="[]")
+    quality_assessment_json: Mapped[str] = mapped_column(
+        Text, default='{"label":"Fair","status":"fair"}'
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
     processing_time_ms: Mapped[int] = mapped_column(Integer, default=0)
-    model_version: Mapped[str] = mapped_column(String(100), default="feature-baseline-v1")
+    model_version: Mapped[str] = mapped_column(String(100), default="visionguard-iqa-v1.1")
 
     # ----- convenience helpers -----
 
@@ -49,6 +53,22 @@ class AnalysisRecord(Base):
     def statistics(self, value: dict) -> None:  # type: ignore[override]
         self.statistics_json = json.dumps(value)
 
+    @property
+    def explanations(self) -> list[str]:
+        return json.loads(self.explanations_json)
+
+    @explanations.setter
+    def explanations(self, value: list[str]) -> None:
+        self.explanations_json = json.dumps(value)
+
+    @property
+    def quality_assessment(self) -> dict:
+        return json.loads(self.quality_assessment_json)
+
+    @quality_assessment.setter
+    def quality_assessment(self, value: dict) -> None:
+        self.quality_assessment_json = json.dumps(value)
+
     def to_dict(self) -> dict:
         """Serialise to the shape expected by the API response."""
         return {
@@ -57,9 +77,11 @@ class AnalysisRecord(Base):
             "image_url": self.image_url,
             "quality_score": self.quality_score,
             "quality_label": self.quality_label,
+            "quality_assessment": self.quality_assessment,
             "analysis_confidence": self.analysis_confidence,
             "issues": self.issues,
             "statistics": self.statistics,
+            "explanations": self.explanations,
             "summary": self.summary,
             "recommendation": self.recommendation,
             "created_at": self.created_at.isoformat(),

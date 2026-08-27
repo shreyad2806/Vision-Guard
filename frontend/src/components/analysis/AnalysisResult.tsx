@@ -29,11 +29,15 @@ function formatProcessingTime(ms: number): string {
 
 function recommendationText(label: QualityLabel): string {
   switch (label) {
-    case "ACCEPTABLE":
-      return "Recommendation: Safe for downstream analysis";
-    case "DEGRADED":
-      return "Recommendation: Use with caution or consider image enhancement";
-    case "DEFECTIVE":
+    case "Excellent":
+      return "Recommendation: Image quality is suitable for automated analysis";
+    case "Good":
+      return "Recommendation: Image quality is generally reliable";
+    case "Fair":
+      return "Recommendation: Consider image enhancement for improved analysis";
+    case "Poor":
+      return "Recommendation: Review or recapture image";
+    case "Critical":
       return "Recommendation: Recapture image or perform manual review";
   }
 }
@@ -145,7 +149,9 @@ export default function AnalysisResult({ result }: AnalysisResultProps) {
                 <Cpu size={10} style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }} />
                 Model Version
               </span>
-              <span className="metadata-item__value">v1.0.0</span>
+              <span className="metadata-item__value">
+                {result.model_version ?? "v1.1.0"}
+              </span>
             </div>
           </div>
         </div>

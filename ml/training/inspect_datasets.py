@@ -1,123 +1,223 @@
 """Inspect available datasets and report structure, columns, score ranges."""
 
 import csv
+import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_ROOT = PROJECT_ROOT / "datasets" / "extracted"
 
 
+def find_csv_files(root: Path) -> list[Path]:
+    """Find all CSV files in a directory tree."""
+    csv_files = []
+    for f in root.rglob("*.csv"):
+        csv_files.append(f)
+    return csv_files
+
+
+def find_image_dirs(root: Path) -> list[Path]:
+    """Find directories containing image files."""
+    image_dirs = []
+    extensions = {".jpg", ".jpeg", ".png", ".webp"}
+    for dirpath in root.rglob("*"):
+        if dirpath.is_dir():
+            try:
+                for f in list(dirpath.iterdir())[:10]:
+                    if f.suffix.lower() in extensions:
+                        image_dirs.append(dirpath)
+                        break
+            except PermissionError:
+                pass
+    return image_dirs
+
+
+def inspect_dataset(name: str, root: Path) -> dict | None:
+    """Inspect a single dataset and return summary info."""
+    print("=" * 70)
+    print(f"  {name} Dataset Inspection")
+    print("=" * 70)
+
+    if not root.exists():
+        print(f"  ✗ Dataset root not found: {root}")
+        return None
+
+    print(f"  Dataset root: {root}")
+
+    # Find CSV files
+    csv_files = find_csv_files(root)
+    if csv_files:
+        print(f"  CSV/metadata files found:")
+        for f in csv_files:
+            print(f"    - {f.relative_to(root)}")
+    else:
+        print(f"  ✗ No CSV files found")
+
+    # Find image directories
+    image_dirs = find_image_dirs(root)
+    if image_dirs:
+        print(f"  Image directories found:")
+        for d in image_dirs:
+            img_count = sum(1 for _ in d.iterdir() if _.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"})
+            print(f"    - {d.relative_to(root)} ({img_count} images)")
+    else:
+        print(f"  ✗ No image directories found")
+
+    # Parse each CSV
+    results = {}
+    for csv_path in csv_files:
+        print(f"\n  --- Inspecting: {csv_path.name} ---")
+        try:
+            with open(csv_path, "r", encoding="utf-8-sig") as f:
+                reader = csv.DictReader(f)
+                rows = list(reader)
+        except Exception as e:
+            print(f"  ✗ Error reading CSV: {e}")
+            continue
+
+        if not rows:
+            print(f"  ✗ CSV is empty")
+            continue
+
+        columns = list(rows[0].keys())
+        print(f"  Column names: {columns}")
+        print(f"  Total metadata rows: {len(rows)}")
+
+        # Show sample rows
+        print(f"  Sample rows (first 3):")
+        for i, row in enumerate(rows[:3]):
+            print(f"    Row {i}: {dict(row)}")
+
+        # Try to find quality score column
+        score_col = None
+        candidates = ["dmos", "MOS", "mos", "score", "quality_score", "quality"]
+        for col in candidates:
+            if col in columns:
+                score_col = col
+                break
+
+        if not score_col:
+            # Try case-insensitive match
+            for col in columns:
+                if col.lower() in ["dmos", "mos", "score", "quality_score", "quality"]:
+                    score_col = col
+                    break
+
+        if score_col:
+            scores = []
+            for row in rows:
+                try:
+                    scores.append(float(row[score_col]))
+                except (ValueError, KeyError):
+                    pass
+
+            if scores:
+                import statistics
+                print(f"  Quality score column: '{score_col}'")
+                print(f"  Quality score range: {min(scores):.4f} - {max(scores):.4f}")
+                print(f"  Quality score mean: {statistics.mean(scores):.4f}")
+                print(f"  Quality score std: {statistics.stdev(scores):.4f}")
+                print(f"  Quality score min: {min(scores):.4f}")
+                print(f"  Quality score max: {max(scores):.4f}")
+                results["score_col"] = score_col
+                results["scores"] = scores
+                results["columns"] = columns
+                results["total_rows"] = len(rows)
+        else:
+            print(f"  ✗ Could not identify quality score column")
+
+        # Count images that exist
+        if image_dirs:
+            img_dir = image_dirs[0]
+            # Find image filename column
+            img_col = None
+            for col in ["dist_img", "image_name", "filename", "image", "image_file"]:
+                if col in columns:
+                    img_col = col
+                    break
+
+            if img_col:
+                missing = 0
+                found = 0
+                for row in rows:
+                    img_path = img_dir / row[img_col]
+                    if img_path.exists():
+                        found += 1
+                    else:
+                        missing += 1
+                print(f"  Available images: {found}")
+                print(f"  Missing images: {missing}")
+                results["available_images"] = found
+                results["missing_images"] = missing
+                results["img_col"] = img_col
+                results["img_dir"] = str(img_dir)
+
+    results["csv_files"] = [str(f) for f in csv_files]
+    results["image_dirs"] = [str(d) for d in image_dirs]
+    results["dataset_root"] = str(root)
+    return results
+
+
 def inspect_kadid():
     """Inspect the KADID-10K dataset."""
     kadid_root = DATA_ROOT / "kadid10k" / "kadid10k"
-    csv_path = kadid_root / "dmos.csv"
-    img_dir = kadid_root / "images"
-
-    print("=" * 60)
-    print("KADID-10K Dataset Inspection")
-    print("=" * 60)
-
-    if not csv_path.exists():
-        print(f"  CSV not found: {csv_path}")
-        return
-
-    with open(csv_path, "r") as f:
-        reader = csv.DictReader(f)
-        rows = list(reader)
-
-    print(f"  Dataset root: {kadid_root}")
-    print(f"  Image directory: {img_dir}")
-    print(f"  Metadata file: {csv_path}")
-    print(f"  Columns: {list(rows[0].keys())}")
-    print(f"  Total rows: {len(rows)}")
-
-    # Score statistics
-    scores = [float(r["dmos"]) for r in rows]
-    mean_score = sum(scores) / len(scores)
-    print(f"  DMOS score range: {min(scores):.3f} - {max(scores):.3f}")
-    print(f"  DMOS score mean: {mean_score:.3f}")
-    print(f"  DMOS score std: {(sum((s - mean_score)**2 for s in scores) / len(scores))**0.5:.3f}")
-
-    # Normalized quality scores
-    norm_scores = [max(0, min(100, (s - 1.0) / 4.0 * 100)) for s in scores]
-    print(f"  Normalized quality range: {min(norm_scores):.1f} - {max(norm_scores):.1f}")
-
-    # Reference images
-    ref_imgs = set(r["ref_img"] for r in rows)
-    print(f"  Unique reference images: {len(ref_imgs)}")
-
-    # Distortion types
-    dist_types: set[str] = set()
-    for r in rows:
-        fname = r["dist_img"].replace(".png", "")
-        parts = fname.split("_")
-        if len(parts) >= 3:
-            dist_types.add(parts[1])
-    print(f"  Distortion types: {len(dist_types)} ({sorted(dist_types)[:5]}...)")
-
-    # Check image existence
-    missing = sum(1 for r in rows if not (img_dir / r["dist_img"]).exists())
-    print(f"  Missing images: {missing}")
-
-    print(f"\n  Interpretation: DMOS 1.0 = low quality, DMOS ~5.0 = high quality")
-    print(f"  Quality = (DMOS - 1) / 4 * 100  ->  maps to 0-100 scale")
-    print()
+    return inspect_dataset("KADID-10K", kadid_root)
 
 
 def inspect_koniq():
     """Inspect the KonIQ-10K dataset."""
-    koniq_root = DATA_ROOT / "koniq-10k"
+    # Try multiple possible locations
+    possible_roots = [
+        DATA_ROOT / "koniq10k",
+        DATA_ROOT / "koniq-10k",
+        DATA_ROOT / "KONIQ-10k",
+    ]
 
-    print("=" * 60)
-    print("KonIQ-10K Dataset Inspection")
-    print("=" * 60)
+    for root in possible_roots:
+        if root.exists():
+            return inspect_dataset("KonIQ-10K", root)
 
-    if not koniq_root.exists():
-        print(f"  Dataset not found at: {koniq_root}")
-        print(f"  Download from: https://database.mmsp-kn.de/koniq-10k-database.html")
-        print(f"  Expected structure: koniq-10k/images/ and koniq-10k/koniq10k.csv")
-        print()
-        return False
-
-    csv_path = koniq_root / "koniq10k.csv"
-    img_dir = koniq_root / "images"
-
-    if not csv_path.exists():
-        print(f"  CSV not found: {csv_path}")
-        return False
-
-    with open(csv_path, "r") as f:
-        reader = csv.DictReader(f)
-        rows = list(reader)
-
-    print(f"  Dataset root: {koniq_root}")
-    print(f"  Image directory: {img_dir}")
-    print(f"  Metadata file: {csv_path}")
-    print(f"  Columns: {list(rows[0].keys())}")
-    print(f"  Total rows: {len(rows)}")
-
-    # Try common score column names
-    score_col = None
-    for col in ["MOS", "mos", "score", "quality_score", "dmos", "quality"]:
-        if col in rows[0]:
-            score_col = col
-            break
-
-    if score_col:
-        scores = [float(r[score_col]) for r in rows]
-        print(f"  Score column: {score_col}")
-        print(f"  Score range: {min(scores):.3f} - {max(scores):.3f}")
-        print(f"  Score mean: {sum(scores)/len(scores):.3f}")
-
-    print()
+    print("  ✗ KonIQ-10K not found in any expected location")
+    print(f"    Searched: {[str(r) for r in possible_roots]}")
+    return None
 
 
 def main():
-    inspect_kadid()
-    has_koniq = inspect_koniq()
+    print("VisionGuard — Dataset Inspection")
+    print("=" * 70)
+    print()
 
-    if not has_koniq:
-        print("Note: KonIQ-10K not available. Training will use KADID-10K only.")
+    kadid_info = inspect_kadid()
+    print()
+    koniq_info = inspect_koniq()
+    print()
+
+    # Summary
+    print("=" * 70)
+    print("  Summary")
+    print("=" * 70)
+
+    if kadid_info:
+        print(f"  KADID-10K:")
+        print(f"    Score column: {kadid_info.get('score_col', 'N/A')}")
+        print(f"    Total rows: {kadid_info.get('total_rows', 'N/A')}")
+        print(f"    Available images: {kadid_info.get('available_images', 'N/A')}")
+        if kadid_info.get("scores"):
+            s = kadid_info["scores"]
+            print(f"    Score range: {min(s):.4f} - {max(s):.4f}")
+    else:
+        print(f"  KADID-10K: NOT FOUND")
+
+    if koniq_info:
+        print(f"  KonIQ-10K:")
+        print(f"    Score column: {koniq_info.get('score_col', 'N/A')}")
+        print(f"    Total rows: {koniq_info.get('total_rows', 'N/A')}")
+        print(f"    Available images: {koniq_info.get('available_images', 'N/A')}")
+        if koniq_info.get("scores"):
+            s = koniq_info["scores"]
+            print(f"    Score range: {min(s):.4f} - {max(s):.4f}")
+    else:
+        print(f"  KonIQ-10K: NOT FOUND")
 
 
 if __name__ == "__main__":

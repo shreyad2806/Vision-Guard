@@ -46,8 +46,10 @@ function formatDate(iso: string): string {
 }
 
 function scoreColor(score: number): string {
-  if (score >= 70) return "var(--green)";
+  if (score >= 80) return "var(--green)";
+  if (score >= 60) return "var(--blue, #3b82f6)";
   if (score >= 40) return "var(--yellow)";
+  if (score >= 20) return "var(--orange, #f97316)";
   return "var(--red)";
 }
 
@@ -97,22 +99,24 @@ function sortAnalyses(
 function SummaryCards({ analyses }: { analyses: AnalysisResultType[] }) {
   const counts = useMemo(() => {
     const total = analyses.length;
-    let acceptable = 0;
-    let degraded = 0;
-    let defective = 0;
+    let excellent = 0;
+    let good = 0;
+    let fair = 0;
+    let poor = 0;
     for (const a of analyses) {
-      if (a.quality_label === "ACCEPTABLE") acceptable++;
-      else if (a.quality_label === "DEGRADED") degraded++;
-      else if (a.quality_label === "DEFECTIVE") defective++;
+      if (a.quality_label === "Excellent") excellent++;
+      else if (a.quality_label === "Good") good++;
+      else if (a.quality_label === "Fair") fair++;
+      else if (a.quality_label === "Poor" || a.quality_label === "Critical") poor++;
     }
-    return { total, acceptable, degraded, defective };
+    return { total, excellent, good, fair, poor };
   }, [analyses]);
 
   const cards = [
     { value: counts.total, label: "Total Analyses", color: "total" },
-    { value: counts.acceptable, label: "Acceptable", color: "acceptable" },
-    { value: counts.degraded, label: "Degraded", color: "degraded" },
-    { value: counts.defective, label: "Defective", color: "defective" },
+    { value: counts.excellent + counts.good, label: "Good+", color: "acceptable" },
+    { value: counts.fair, label: "Fair", color: "degraded" },
+    { value: counts.poor, label: "Poor/Critical", color: "defective" },
   ] as const;
 
   return (
@@ -483,9 +487,11 @@ export default function History() {
           aria-label="Filter by status"
         >
           <option value="">All Statuses</option>
-          <option value="ACCEPTABLE">ACCEPTABLE</option>
-          <option value="DEGRADED">DEGRADED</option>
-          <option value="DEFECTIVE">DEFECTIVE</option>
+          <option value="Excellent">Excellent</option>
+          <option value="Good">Good</option>
+          <option value="Fair">Fair</option>
+          <option value="Poor">Poor</option>
+          <option value="Critical">Critical</option>
         </select>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <ArrowUpDown

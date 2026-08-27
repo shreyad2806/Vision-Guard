@@ -1,10 +1,11 @@
 """Orchestrate the full image analysis pipeline.
 
-Pipeline:  image → feature extraction → model inference → quality decision → persist
+Pipeline:  image -> feature extraction -> model inference -> quality decision -> persist
 """
 
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,7 +34,7 @@ def run_analysis(db: Session, filename: str, image_path: str) -> dict:
     # 2. Extract all 12 statistics for UI display
     all_features = extract_all_features(img)
 
-    # 3. Run inference (model prediction + issue detection)
+    # 3. Run calibrated inference (model prediction + calibration + issue detection)
     result = predict_quality(model_features, all_features)
 
     # 4. Build image URL from stored filename
@@ -60,8 +61,18 @@ def run_analysis(db: Session, filename: str, image_path: str) -> dict:
         processing_time_ms=result["processing_time_ms"],
         model_version=settings.model_version,
     )
+
+    # Store extra fields
+    explanations = result.get("explanations", [])
+    quality_assessment = result.get("quality_assessment", {"label": "Fair", "status": "fair"})
+    record.explanations_json = json.dumps(explanations)
+    record.quality_assessment_json = json.dumps(quality_assessment)
+
     db.add(record)
     db.commit()
     db.refresh(record)
 
-    return record.to_dict()
+    # Build response dict
+    response = record.to_dict()
+    response["raw_prediction"] = result.get("raw_prediction")
+    return response

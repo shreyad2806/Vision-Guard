@@ -23,6 +23,9 @@ function severityClass(severity: Severity): string {
 }
 
 export default function IssueCard({ issue }: IssueCardProps) {
+  const displayTitle = issue.title || issue.type;
+  const displayText = issue.description || issue.explanation || "";
+
   return (
     <div className="issue-card">
       <div className="issue-card__top">
@@ -31,12 +34,12 @@ export default function IssueCard({ issue }: IssueCardProps) {
         </div>
         <div className="issue-card__info">
           <div className="issue-card__header">
-            <span className="issue-card__type">{issue.type}</span>
+            <span className="issue-card__type">{displayTitle}</span>
             <StatusBadge label={issue.severity} size="sm" />
           </div>
         </div>
       </div>
-      <p className="issue-card__explanation">{issue.explanation}</p>
+      <p className="issue-card__explanation">{displayText}</p>
       <div className="issue-card__confidence-row">
         <span className="issue-card__confidence-label">Confidence</span>
         <ConfidenceBar value={issue.confidence} />

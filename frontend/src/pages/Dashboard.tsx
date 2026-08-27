@@ -149,7 +149,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Right: Quality Score or Empty State */}
+        {/* Right: Quality Score / Ready State / Analyzing / Empty State */}
         <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
           {result && !loading ? (
             <QualityScore
@@ -163,6 +163,26 @@ export default function Dashboard() {
               message={error}
               onRetry={handleAnalyze}
             />
+          ) : loading ? (
+            <EmptyState
+              icon={<ImageIcon size={40} style={{ color: "var(--text-muted)" }} />}
+              title="Analyzing image..."
+              message="Running visual quality analysis, please wait."
+            />
+          ) : selectedFile && previewUrl ? (
+            <div style={{ textAlign: "center", padding: 24 }}>
+              <img
+                src={previewUrl}
+                alt={selectedFile.name}
+                style={{ maxWidth: "100%", maxHeight: 220, borderRadius: 8, marginBottom: 12 }}
+              />
+              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
+                Ready for analysis
+              </p>
+              <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
+                Click <strong>Analyze Image</strong> to evaluate quality
+              </p>
+            </div>
           ) : (
             <EmptyState
               icon={<ImageIcon size={40} style={{ color: "var(--text-muted)" }} />}

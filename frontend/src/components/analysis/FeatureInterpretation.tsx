@@ -13,49 +13,64 @@ function generateObservations(result: AnalysisResult): Observation[] {
   const { statistics: s, quality_label } = result;
   const obs: Observation[] = [];
 
-  // Sharpness
-  if (s.sharpness >= 60) {
-    obs.push({ text: "Sharpness is within the optimal range.", level: "good" });
-  } else if (s.sharpness >= 35) {
-    obs.push({ text: "Sharpness is below the optimal threshold.", level: "warn" });
+  // If the backend provides explanations, use them directly
+  if (result.explanations && result.explanations.length > 0) {
+    for (const explanation of result.explanations) {
+      const lower = explanation.toLowerCase();
+      let level: "good" | "warn" | "bad" = "good";
+      if (lower.includes("below") || lower.includes("blur") || lower.includes("low") || lower.includes("desaturated") || lower.includes("overexposure") || lower.includes("underexposure")) {
+        level = lower.includes("significantly") || lower.includes("well below") || lower.includes("very low") ? "bad" : "warn";
+      }
+      obs.push({ text: explanation, level });
+    }
   } else {
-    obs.push({ text: "Sharpness is critically low — edge detail is unrecoverable.", level: "bad" });
+    // Fallback to local observations
+    // Sharpness
+    if (s.sharpness >= 250) {
+      obs.push({ text: "Sharpness is within the optimal range.", level: "good" });
+    } else if (s.sharpness >= 100) {
+      obs.push({ text: "Sharpness is below the optimal threshold.", level: "warn" });
+    } else {
+      obs.push({ text: "Sharpness is critically low — edge detail is unrecoverable.", level: "bad" });
+    }
+
+    // Brightness
+    if (s.brightness >= 80 && s.brightness <= 170) {
+      obs.push({ text: "Brightness is balanced with no significant clipping.", level: "good" });
+    } else if (s.brightness < 50) {
+      obs.push({ text: "Image is underexposed — shadow detail is lost.", level: "bad" });
+    } else if (s.brightness > 200) {
+      obs.push({ text: "Image is overexposed — highlight clipping detected.", level: "bad" });
+    } else {
+      obs.push({ text: "Brightness is somewhat outside the optimal range.", level: "warn" });
+    }
+
+    // Noise
+    if (s.noise_estimate <= 10) {
+      obs.push({ text: "Noise levels are minimal and within clean thresholds.", level: "good" });
+    } else if (s.noise_estimate <= 20) {
+      obs.push({ text: "Moderate image noise was detected.", level: "warn" });
+    } else {
+      obs.push({ text: "High noise levels significantly degrade image quality.", level: "bad" });
+    }
+
+    // Entropy
+    if (s.entropy >= 6) {
+      obs.push({ text: "Rich visual information is present in the image.", level: "good" });
+    } else if (s.entropy >= 4) {
+      obs.push({ text: "Information content is limited.", level: "warn" });
+    } else {
+      obs.push({ text: "Very low information content — image may be corrupted.", level: "bad" });
+    }
   }
 
-  // Brightness
-  if (s.brightness >= 80 && s.brightness <= 180) {
-    obs.push({ text: "Brightness is balanced with no significant clipping.", level: "good" });
-  } else if (s.brightness < 80) {
-    obs.push({ text: "Image is underexposed — shadow detail is lost.", level: "bad" });
-  } else {
-    obs.push({ text: "Image is overexposed — highlight clipping detected.", level: "bad" });
-  }
-
-  // Noise
-  if (s.noise_estimate <= 10) {
-    obs.push({ text: "Noise levels are minimal and within clean thresholds.", level: "good" });
-  } else if (s.noise_estimate <= 20) {
-    obs.push({ text: "Moderate image noise was detected.", level: "warn" });
-  } else {
-    obs.push({ text: "High noise levels significantly degrade image quality.", level: "bad" });
-  }
-
-  // Entropy
-  if (s.entropy >= 6) {
-    obs.push({ text: "Rich visual information is present in the image.", level: "good" });
-  } else if (s.entropy >= 4) {
-    obs.push({ text: "Information content is limited.", level: "warn" });
-  } else {
-    obs.push({ text: "Very low information content — image may be corrupted.", level: "bad" });
-  }
-
-  // Overall verdict
-  if (quality_label === "ACCEPTABLE") {
+  // Overall verdict (always append)
+  if (quality_label === "Excellent" || quality_label === "Good") {
     obs.push({
       text: "Overall visual quality remains suitable for analysis.",
       level: "good",
     });
-  } else if (quality_label === "DEGRADED") {
+  } else if (quality_label === "Fair") {
     obs.push({
       text: "Quality issues may impact downstream computer vision reliability.",
       level: "warn",

@@ -1,34 +1,119 @@
 {
-  "model_name": "RandomForest",
-  "model_version": "visionguard-iqa-v1",
+  "model_type": "HistGradientBoosting",
+  "model_version": "v2.0.0",
+  "training_datasets": [
+    "KADID-10K",
+    "KonIQ-10K"
+  ],
   "feature_names": [
     "brightness",
-    "colorfulness",
     "contrast",
-    "dynamic_range",
-    "edge_density",
-    "entropy",
-    "noise_estimate",
-    "overexposure_pct",
-    "saturation",
     "sharpness",
-    "texture_complexity",
-    "underexposure_pct"
+    "saturation",
+    "edge_density"
   ],
-  "training_datasets": [
-    "KADID-10K"
-  ],
-  "training_mode": "fast",
-  "training_samples": 3000,
-  "validation_metrics": {
-    "mae": 19.6739,
-    "rmse": 23.8254,
-    "r2": 0.2421
+  "target_scale": "0-100 higher-is-better",
+  "calibration": {
+    "method": "IsotonicRegression",
+    "pred_min": 0.0,
+    "pred_max": 89.1154,
+    "pred_mean": 55.6209,
+    "pred_std": 15.4334
   },
-  "test_metrics": {
-    "mae": 18.1902,
-    "rmse": 22.8699,
-    "r2": 0.2968
+  "metrics": {
+    "mae": 16.0521,
+    "rmse": 19.8473,
+    "r2": 0.3597,
+    "spearman": 0.5652
   },
-  "created_at": "2026-08-27T16:10:57.351187+00:00"
+  "dataset_samples": {
+    "kadid": 10125,
+    "koniq": 6175,
+    "combined": 16300
+  },
+  "feature_statistics": {
+    "brightness": {
+      "min": 2.1896,
+      "max": 250.9293,
+      "mean": 111.7154,
+      "std": 41.4749,
+      "p5": 35.7286,
+      "p10": 56.4179,
+      "p25": 86.3391,
+      "p50": 113.1503,
+      "p75": 136.6815,
+      "p90": 166.4667,
+      "p95": 181.9676
+    },
+    "contrast": {
+      "min": 5.0386,
+      "max": 102.0794,
+      "mean": 52.6013,
+      "std": 17.6864,
+      "p5": 23.0793,
+      "p10": 29.5862,
+      "p25": 41.6763,
+      "p50": 52.1308,
+      "p75": 62.5049,
+      "p90": 76.7496,
+      "p95": 85.7876
+    },
+    "sharpness": {
+      "min": 3.2356,
+      "max": 102171.5853,
+      "mean": 3925.3812,
+      "std": 6361.0296,
+      "p5": 139.8676,
+      "p10": 285.6542,
+      "p25": 813.976,
+      "p50": 2181.7605,
+      "p75": 4706.8489,
+      "p90": 8359.2559,
+      "p95": 12209.2528
+    },
+    "saturation": {
+      "min": 0.0,
+      "max": 255.0,
+      "mean": 118.413,
+      "std": 56.5483,
+      "p5": 31.2665,
+      "p10": 49.1681,
+      "p25": 76.4062,
+      "p50": 112.8821,
+      "p75": 156.8001,
+      "p90": 198.7534,
+      "p95": 223.3074
+    },
+    "edge_density": {
+      "min": 0.0,
+      "max": 0.4137,
+      "mean": 0.1272,
+      "std": 0.0811,
+      "p5": 0.0185,
+      "p10": 0.0306,
+      "p25": 0.0628,
+      "p50": 0.1151,
+      "p75": 0.1778,
+      "p90": 0.2447,
+      "p95": 0.2814
+    }
+  },
+  "quality_bins": {
+    "edges": [
+      0,
+      20,
+      40,
+      60,
+      80,
+      100
+    ],
+    "train_distribution": {
+      "0": 1400,
+      "20": 2476,
+      "40": 2748,
+      "60": 3876,
+      "80": 2541
+    }
+  },
+  "created_at": "2026-08-27T21:30:05.500883+00:00"
 }

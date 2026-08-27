@@ -49,7 +49,7 @@ class TestDocs:
         assert r.status_code == 200
 
 
-# ---- Analyze ----
+# ---- Analyse ----
 
 class TestAnalyze:
     def test_valid_image_returns_201(self, client: TestClient, sample_jpeg):
@@ -71,11 +71,12 @@ class TestAnalyze:
         assert "recommendation" in data
         assert "processing_time_ms" in data
         assert "model_version" in data
+        assert "explanations" in data
 
     def test_quality_label_is_valid(self, client: TestClient, sample_jpeg):
         r = client.post("/api/v1/analyze", files={"file": ("test.jpg", sample_jpeg, "image/jpeg")})
         data = r.json()
-        assert data["quality_label"] in ("ACCEPTABLE", "DEGRADED", "DEFECTIVE")
+        assert data["quality_label"] in ("Excellent", "Good", "Fair", "Poor", "Critical")
 
     def test_score_in_range(self, client: TestClient, sample_jpeg):
         r = client.post("/api/v1/analyze", files={"file": ("test.jpg", sample_jpeg, "image/jpeg")})
@@ -88,6 +89,11 @@ class TestAnalyze:
         stats = r.json()["statistics"]
         for key in ["sharpness", "brightness", "contrast", "noise_estimate", "entropy", "saturation"]:
             assert key in stats
+
+    def test_explanations_is_list(self, client: TestClient, sample_jpeg):
+        r = client.post("/api/v1/analyze", files={"file": ("test.jpg", sample_jpeg, "image/jpeg")})
+        data = r.json()
+        assert isinstance(data["explanations"], list)
 
     def test_invalid_extension_returns_400(self, client: TestClient):
         r = client.post("/api/v1/analyze", files={"file": ("test.txt", b"hello", "text/plain")})
@@ -106,15 +112,32 @@ class TestAnalyze:
 
 class TestFeatureExtraction:
     def test_extracts_all_features(self):
-        import cv2
         import numpy as np
 
-        from apps.ml.feature_extractor import extract_features
+        from apps.ml.feature_extractor import extract_all_features
 
         img = np.zeros((100, 100, 3), dtype=np.uint8)
         img[:] = [128, 128, 128]
-        features = extract_features(img)
-        expected_keys = {"sharpness", "brightness", "contrast", "noise_estimate", "entropy", "saturation"}
+        features = extract_all_features(img)
+        # extract_all_features returns 12 statistics for the UI
+        assert "sharpness" in features
+        assert "brightness" in features
+        assert "contrast" in features
+        assert "noise_estimate" in features
+        assert "entropy" in features
+        assert "saturation" in features
+        assert all(isinstance(v, float) for v in features.values())
+
+    def test_model_features_match_training(self):
+        import numpy as np
+
+        from apps.ml.feature_extractor import extract_model_features
+
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+        img[:] = [128, 128, 128]
+        features = extract_model_features(img)
+        # extract_model_features returns exactly the 5 features used by the RF model
+        expected_keys = {"brightness", "contrast", "sharpness", "saturation", "edge_density"}
         assert set(features.keys()) == expected_keys
         assert all(isinstance(v, float) for v in features.values())
 
@@ -133,10 +156,10 @@ class TestHistory:
     def test_filter_by_label(self, client: TestClient, sample_jpeg):
         # Upload an image first
         client.post("/api/v1/analyze", files={"file": ("test.jpg", sample_jpeg, "image/jpeg")})
-        r = client.get("/api/v1/analyses?quality_label=ACCEPTABLE")
+        r = client.get("/api/v1/analyses?quality_label=Excellent")
         assert r.status_code == 200
         for item in r.json():
-            assert item["quality_label"] == "ACCEPTABLE"
+            assert item["quality_label"] == "Excellent"
 
     def test_pagination(self, client: TestClient):
         r = client.get("/api/v1/analyses?limit=1&offset=0")
