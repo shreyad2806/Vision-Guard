@@ -14,6 +14,12 @@ import time
 
 import numpy as np
 
+from typing import Any, Protocol
+
+class PredictorModel(Protocol):
+    def predict(self, X: np.ndarray) -> np.ndarray: ...
+    def predict_proba(self, X: np.ndarray) -> np.ndarray: ...
+
 from apps.ml.model_loader import get_model, get_feature_names, get_calibrator, get_metadata, get_calibration
 from apps.ml.calibration import (
     apply_calibration,
@@ -27,7 +33,7 @@ from apps.ml.issue_detector import detect_issues
 # ---------------------------------------------------------------------------
 # Confidence estimation via tree variance
 # ---------------------------------------------------------------------------
-def _estimate_confidence(model, vector: np.ndarray) -> float:
+def _estimate_confidence(model: PredictorModel, vector: np.ndarray) -> float:
     """Estimate confidence from individual tree predictions.
 
     Low disagreement among trees -> high confidence.
@@ -35,9 +41,12 @@ def _estimate_confidence(model, vector: np.ndarray) -> float:
     """
     try:
         if hasattr(model, "estimators_"):
+            # Cast estimators to ensure tree.predict is type-safe
+            from typing import cast
+            estimators = cast(list[PredictorModel], getattr(model, "estimators_", []))
             tree_preds = np.array([
-                tree.predict(vector)[0]
-                for tree in model.estimators_
+                float(tree.predict(vector)[0])
+                for tree in estimators
             ])
             std = float(np.std(tree_preds))
             # Map std to confidence: std ~0 → 100, std ~5 → 50
@@ -96,8 +105,10 @@ def predict_quality(
     dict with quality_score, quality_label, raw_prediction, issues,
     metrics, explanations, recommendation, confidence, processing_time_ms, etc.
     """
+    from typing import cast
     start = time.perf_counter()
-    model = get_model()
+    raw_model = get_model()
+    model = cast(PredictorModel, raw_model) if raw_model is not None else None
     feature_names = get_feature_names()
     calibrator = get_calibrator()
     metadata = get_metadata()
@@ -145,7 +156,7 @@ def predict_quality(
     feature_stats = None
     if metadata and "feature_statistics" in metadata:
         feature_stats = {"feature_thresholds": _build_thresholds_from_stats(metadata["feature_statistics"])}
-    issues = detect_issues(all_features, feature_stats)
+    issues = detect_issues(all_features)
 
     # --- Step 4: Generate explanations ---
     explanations = _generate_explanations(all_features, feature_stats)

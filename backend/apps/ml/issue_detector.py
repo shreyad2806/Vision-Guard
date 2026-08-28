@@ -1,325 +1,436 @@
-"""Feature-based issue detection.
+"""
+Rule-based image quality issue detection.
 
-Issues are detected from actual extracted feature values using
-percentile-derived thresholds from the combined training data.
+This module maps extracted visual features to concrete, explainable
+image-quality issues required by the VisionGuard project.
+
+Required capabilities:
+- Blur / insufficient sharpness
+- Underexposure
+- Overexposure
+- Image noise
+- Image corruption or severe degradation
+- Potential visual defect
+- Additional technically justified issues
 """
 
 from __future__ import annotations
 
-import numpy as np
+from typing import Mapping
 
 
-# Default thresholds (can be overridden by calibration data)
-# These are derived from typical combined KADID + KonIQ distributions.
-DEFAULT_THRESHOLDS: dict[str, dict[str, float]] = {
-    "brightness": {
-        "p5": 35.0,     # severely underexposed
-        "p10": 55.0,    # underexposed
-        "p90": 190.0,   # overexposed
-        "p95": 210.0,   # severely overexposed
-        "optimal_low": 80.0,
-        "optimal_high": 170.0,
-    },
-    "contrast": {
-        "p5": 12.0,
-        "p10": 18.0,    # low contrast
-        "optimal_low": 35.0,
-    },
-    "sharpness": {
-        "p5": 30.0,
-        "p10": 80.0,    # low sharpness / blur
-        "optimal_low": 200.0,
-    },
-    "saturation": {
-        "p5": 5.0,
-        "p10": 15.0,    # low saturation
-        "p95": 120.0,   # oversaturated
-    },
-    "noise_estimate": {
-        "p90": 25.0,    # high noise
-        "p95": 40.0,    # severe noise
-    },
-    "entropy": {
-        "p10": 4.5,     # low information content
-    },
-    "dynamic_range": {
-        "p10": 60.0,    # limited dynamic range
-    },
-    "edge_density": {
-        "p5": 3.0,
-        "p10": 5.0,     # low structural content
-    },
-}
-
-
-def _severity_from_deviation(value: float, threshold: float, ref_range: float, direction: str = "below") -> str:
-    """Determine severity based on how far the value deviates from threshold."""
-    if ref_range <= 0:
-        return "medium"
-    if direction == "below":
-        deviation = threshold - value
-    else:
-        deviation = value - threshold
-    if deviation <= 0:
-        return "low"
-    ratio = deviation / ref_range
-    if ratio < 0.3:
-        return "low"
-    elif ratio < 0.7:
-        return "medium"
-    return "high"
-
-
-def _confidence_from_deviation(value: float, threshold: float, ref_range: float, direction: str = "below") -> float:
-    """Compute confidence (0-1) based on deviation from threshold."""
-    if ref_range <= 0:
-        return 0.6
-    if direction == "below":
-        deviation = threshold - value
-    else:
-        deviation = value - threshold
-    if deviation <= 0:
-        return 0.0
-    return round(min(0.99, 0.5 + (deviation / ref_range) * 0.49), 3)
-
-
-def detect_issues(
-    features: dict[str, float],
-    feature_stats: dict | None = None,
-) -> list[dict]:
-    """Detect quality issues from extracted features.
-
-    Args:
-        features: Extracted image features (all 12+ statistics).
-        feature_stats: Optional dict with percentile thresholds from training.
-                       If None, uses DEFAULT_THRESHOLDS.
-
-    Returns:
-        List of detected issues, each with type, title, severity,
-        confidence, feature_value, threshold, and description.
+def _severity_from_ratio(value: float, warning_threshold: float, severe_threshold: float) -> str:
     """
-    # Use provided thresholds or defaults
-    thresholds = DEFAULT_THRESHOLDS
-    if feature_stats and "feature_thresholds" in feature_stats:
-        thresholds = feature_stats["feature_thresholds"]
+    Determine severity when larger values indicate a worse issue.
+
+    Example:
+        noise_estimate = 25
+        warning_threshold = 15
+        severe_threshold = 30
+    """
+    if value >= severe_threshold:
+        return "CRITICAL"
+
+    if value >= warning_threshold:
+        return "HIGH"
+
+    return "LOW"
+
+
+def detect_issues(features: Mapping[str, float]) -> list[dict]:
+    """
+    Detect image quality issues using actual extracted feature thresholds.
+
+    The detector intentionally uses:
+    - Pixel-level exposure percentages as the PRIMARY exposure signal.
+    - Mean brightness only as supporting evidence.
+    - Multiple feature combinations for severe degradation detection.
+
+    Parameters
+    ----------
+    features:
+        Extracted image features.
+
+    Returns
+    -------
+    list[dict]
+        Detected issues with:
+        - type
+        - severity
+        - title
+        - message
+        - feature
+        - value
+    """
 
     issues: list[dict] = []
 
-    # --- Brightness issues ---
-    bt = thresholds.get("brightness", {})
-    br = features.get("brightness", 128.0)
+    # ------------------------------------------------------------------
+    # Read features safely
+    # ------------------------------------------------------------------
 
-    p5 = bt.get("p5", 35.0)
-    p10 = bt.get("p10", 55.0)
-    p90 = bt.get("p90", 190.0)
-    p95 = bt.get("p95", 210.0)
-    opt_lo = bt.get("optimal_low", 80.0)
-    opt_hi = bt.get("optimal_high", 170.0)
+    sharpness = float(features.get("sharpness", 0.0))
+    brightness = float(features.get("brightness", 0.0))
+    contrast = float(features.get("contrast", 0.0))
+    noise = float(features.get("noise_estimate", 0.0))
+    entropy = float(features.get("entropy", 0.0))
+    saturation = float(features.get("saturation", 0.0))
+    under_pct = float(features.get("underexposure_pct", 0.0))
+    over_pct = float(features.get("overexposure_pct", 0.0))
+    edge_density = float(features.get("edge_density", 0.0))
+    dynamic_range = float(features.get("dynamic_range", 0.0))
+    colorfulness = float(features.get("colorfulness", 0.0))
+    texture_complexity = float(features.get("texture_complexity", 0.0))
 
-    # Severe underexposure
-    if br < p5:
-        ref_range = max(opt_lo - p5, 1.0)
-        issues.append({
-            "type": "severe_underexposure",
-            "title": "Severe Underexposure",
-            "severity": "HIGH",
-            "confidence": _confidence_from_deviation(br, p5, ref_range, "below"),
-            "feature_value": round(br, 2),
-            "threshold": p5,
-            "description": "Image is extremely dark. Most shadow detail is lost and the image is unreliable for visual analysis.",
-        })
-    elif br < p10:
-        ref_range = max(opt_lo - p10, 1.0)
-        issues.append({
-            "type": "low_brightness",
-            "title": "Low Brightness",
-            "severity": "MEDIUM",
-            "confidence": _confidence_from_deviation(br, p10, ref_range, "below"),
-            "feature_value": round(br, 2),
-            "threshold": p10,
-            "description": "Image appears darker than the expected range. Shadow detail may be partially lost.",
-        })
+    # ------------------------------------------------------------------
+    # 1. Blur / insufficient sharpness
+    # ------------------------------------------------------------------
+    #
+    # Variance of Laplacian:
+    # lower value -> fewer high-frequency edges -> possible blur.
+    #
+    # Thresholds should later be calibrated against the smart-city
+    # benchmark dataset.
 
-    # Severe overexposure
-    if br > p95:
-        ref_range = max(p95 - opt_hi, 1.0)
-        issues.append({
-            "type": "severe_overexposure",
-            "title": "Severe Overexposure",
-            "severity": "HIGH",
-            "confidence": _confidence_from_deviation(br, p95, ref_range, "above"),
-            "feature_value": round(br, 2),
-            "threshold": p95,
-            "description": "Image is extremely bright with significant highlight clipping. Detail in bright areas is lost.",
-        })
-    elif br > p90:
-        ref_range = max(p90 - opt_hi, 1.0)
-        issues.append({
-            "type": "high_brightness",
-            "title": "High Brightness",
-            "severity": "MEDIUM",
-            "confidence": _confidence_from_deviation(br, p90, ref_range, "above"),
-            "feature_value": round(br, 2),
-            "threshold": p90,
-            "description": "Image may be overexposed. Some highlight clipping may have occurred.",
-        })
+    if sharpness < 15:
+        issues.append(
+            {
+                "type": "severe_blur",
+                "severity": "CRITICAL",
+                "confidence": 1.0,
+                "title": "Severe blur detected",
+                "message": (
+                    "Image sharpness is critically low. Fine details may not "
+                    "be reliable for downstream computer vision analytics."
+                ),
+                "feature": "sharpness",
+                "value": round(sharpness, 2),
+            }
+        )
 
-    # --- Contrast issues ---
-    ct = thresholds.get("contrast", {})
-    co = features.get("contrast", 50.0)
-    c_p10 = ct.get("p10", 18.0)
-    c_opt = ct.get("optimal_low", 35.0)
+    elif sharpness < 40:
+        issues.append(
+            {
+                "type": "insufficient_sharpness",
+                "severity": "HIGH",
+                "confidence": 1.0,
+                "title": "Insufficient image sharpness",
+                "message": (
+                    "Image sharpness is below the recommended range and may "
+                    "reduce detection reliability for small or distant objects."
+                ),
+                "feature": "sharpness",
+                "value": round(sharpness, 2),
+            }
+        )
 
-    if co < c_p10:
-        ref_range = max(c_opt - c_p10, 1.0)
-        issues.append({
-            "type": "low_contrast",
-            "title": "Low Contrast",
-            "severity": "MEDIUM",
-            "confidence": _confidence_from_deviation(co, c_p10, ref_range, "below"),
-            "feature_value": round(co, 2),
-            "threshold": c_p10,
-            "description": "Image has limited separation between light and dark regions. Dynamic range may be too compressed.",
-        })
+    # ------------------------------------------------------------------
+    # 2. Underexposure
+    # ------------------------------------------------------------------
+    #
+    # PRIMARY SIGNAL:
+    # Percentage of pixels below the dark clipping threshold.
+    #
+    # SUPPORTING SIGNAL:
+    # Mean brightness.
+    #
+    # Only ONE final underexposure issue can be created.
 
-    # --- Sharpness / Blur issues ---
-    st = thresholds.get("sharpness", {})
-    sh = features.get("sharpness", 100.0)
-    s_p5 = st.get("p5", 30.0)
-    s_p10 = st.get("p10", 80.0)
-    s_opt = st.get("optimal_low", 200.0)
+    brightness_underexposed = brightness < 70
+    brightness_severe_underexposed = brightness < 40
 
-    if sh < s_p5:
-        ref_range = max(s_opt - s_p5, 1.0)
-        issues.append({
-            "type": "severe_blur",
-            "title": "Severe Blur",
-            "severity": "HIGH",
-            "confidence": _confidence_from_deviation(sh, s_p5, ref_range, "below"),
-            "feature_value": round(sh, 2),
-            "threshold": s_p5,
-            "description": "Image is severely blurred with very low edge detail. Edge information is critically below the expected threshold.",
-        })
-    elif sh < s_p10:
-        ref_range = max(s_opt - s_p10, 1.0)
-        issues.append({
-            "type": "low_sharpness",
-            "title": "Low Sharpness",
-            "severity": "MEDIUM",
-            "confidence": _confidence_from_deviation(sh, s_p10, ref_range, "below"),
-            "feature_value": round(sh, 2),
-            "threshold": s_p10,
-            "description": "Image appears soft or slightly blurry. Edge detail is below the expected threshold.",
-        })
+    pixel_underexposed = under_pct >= 15
+    pixel_severe_underexposed = under_pct >= 40
 
-    # --- Noise issues ---
-    nt = thresholds.get("noise_estimate", {})
-    noise = features.get("noise_estimate", 0.0)
-    n_p90 = nt.get("p90", 25.0)
-    n_p95 = nt.get("p95", 40.0)
+    if pixel_severe_underexposed or (
+        under_pct >= 25 and brightness_severe_underexposed
+    ):
+        issues.append(
+            {
+                "type": "severe_underexposure",
+                "severity": "CRITICAL",
+                "confidence": 1.0,
+                "title": "Severe underexposure detected",
+                "message": (
+                    "A large portion of the image contains critically dark "
+                    "pixels, causing loss of visual detail for downstream analytics."
+                ),
+                "feature": "underexposure_pct",
+                "value": round(under_pct, 2),
+            }
+        )
 
-    if noise > n_p95:
-        ref_range = max(n_p95 - 10.0, 1.0)
-        issues.append({
-            "type": "high_noise",
-            "title": "High Noise",
-            "severity": "HIGH",
-            "confidence": _confidence_from_deviation(noise, n_p95, ref_range, "above"),
-            "feature_value": round(noise, 2),
-            "threshold": n_p95,
-            "description": "Image contains very high levels of noise. This significantly degrades visual quality and feature extraction.",
-        })
-    elif noise > n_p90:
-        ref_range = max(n_p90 - 10.0, 1.0)
-        issues.append({
-            "type": "moderate_noise",
-            "title": "Moderate Noise",
-            "severity": "MEDIUM",
-            "confidence": _confidence_from_deviation(noise, n_p90, ref_range, "above"),
-            "feature_value": round(noise, 2),
-            "threshold": n_p90,
-            "description": "Image contains elevated noise levels which may affect the reliability of visual analysis.",
-        })
+    elif pixel_underexposed or (
+        brightness_underexposed and under_pct >= 5
+    ):
+        issues.append(
+            {
+                "type": "underexposure",
+                "severity": "HIGH",
+                "confidence": 1.0,
+                "title": "Underexposure detected",
+                "message": (
+                    "Dark regions occupy a significant portion of the image. "
+                    "Object and scene details may be difficult to analyse."
+                ),
+                "feature": "underexposure_pct",
+                "value": round(under_pct, 2),
+            }
+        )
 
-    # --- Saturation issues ---
-    sat_t = thresholds.get("saturation", {})
-    sa = features.get("saturation", 50.0)
-    sat_p10 = sat_t.get("p10", 15.0)
-    sat_p95 = sat_t.get("p95", 120.0)
+    # ------------------------------------------------------------------
+    # 3. Overexposure
+    # ------------------------------------------------------------------
+    #
+    # PRIMARY SIGNAL:
+    # Percentage of pixels above the highlight clipping threshold.
+    #
+    # SUPPORTING SIGNAL:
+    # Mean brightness.
+    #
+    # Only ONE final overexposure issue can be created.
 
-    if sa < sat_p10:
-        ref_range = max(40.0 - sat_p10, 1.0)
-        issues.append({
-            "type": "low_saturation",
-            "title": "Low Saturation",
-            "severity": "MEDIUM",
-            "confidence": _confidence_from_deviation(sa, sat_p10, ref_range, "below"),
-            "feature_value": round(sa, 2),
-            "threshold": sat_p10,
-            "description": "Colors appear muted or desaturated. This may reduce the effectiveness of color-based analysis.",
-        })
+    brightness_overexposed = brightness > 185
+    brightness_severe_overexposed = brightness > 220
 
-    if sa > sat_p95:
-        ref_range = max(sat_p95 - 60.0, 1.0)
-        issues.append({
-            "type": "oversaturation",
-            "title": "Oversaturation",
-            "severity": "MEDIUM",
-            "confidence": _confidence_from_deviation(sa, sat_p95, ref_range, "above"),
-            "feature_value": round(sa, 2),
-            "threshold": sat_p95,
-            "description": "Colors appear unnaturally oversaturated. This may indicate aggressive color processing.",
-        })
+    pixel_overexposed = over_pct >= 10
+    pixel_severe_overexposed = over_pct >= 30
 
-    # --- Entropy issues ---
-    et = thresholds.get("entropy", {})
-    ent = features.get("entropy", 6.0)
-    e_p10 = et.get("p10", 4.5)
+    if pixel_severe_overexposed or (
+        over_pct >= 20 and brightness_severe_overexposed
+    ):
+        issues.append(
+            {
+                "type": "severe_overexposure",
+                "severity": "CRITICAL",
+                "confidence": 1.0,
+                "title": "Severe overexposure detected",
+                "message": (
+                    "A large portion of the image is affected by clipped bright "
+                    "regions, resulting in substantial loss of visual information."
+                ),
+                "feature": "overexposure_pct",
+                "value": round(over_pct, 2),
+            }
+        )
 
-    if ent < e_p10:
-        ref_range = max(7.0 - e_p10, 1.0)
-        issues.append({
-            "type": "low_entropy",
-            "title": "Low Information Content",
-            "severity": "LOW",
-            "confidence": _confidence_from_deviation(ent, e_p10, ref_range, "below"),
-            "feature_value": round(ent, 2),
-            "threshold": e_p10,
-            "description": "Image has low information content. This may indicate a featureless or heavily compressed scene.",
-        })
+    elif pixel_overexposed or (
+        brightness_overexposed and over_pct >= 3
+    ):
+        issues.append(
+            {
+                "type": "overexposure",
+                "severity": "HIGH",
+                "confidence": 1.0,
+                "title": "Overexposure detected",
+                "message": (
+                    "Bright regions are clipping visual information and may "
+                    "reduce the reliability of downstream image analytics."
+                ),
+                "feature": "overexposure_pct",
+                "value": round(over_pct, 2),
+            }
+        )
 
-    # --- Dynamic range issues ---
-    drt = thresholds.get("dynamic_range", {})
-    dr = features.get("dynamic_range", 100.0)
-    dr_p10 = drt.get("p10", 60.0)
+    # ------------------------------------------------------------------
+    # 4. Image noise
+    # ------------------------------------------------------------------
 
-    if dr < dr_p10:
-        ref_range = max(120.0 - dr_p10, 1.0)
-        issues.append({
-            "type": "limited_dynamic_range",
-            "title": "Limited Dynamic Range",
-            "severity": "LOW",
-            "confidence": _confidence_from_deviation(dr, dr_p10, ref_range, "below"),
-            "feature_value": round(dr, 2),
-            "threshold": dr_p10,
-            "description": "Image has a narrow tonal range. This may limit the separation of features across intensity levels.",
-        })
+    if noise >= 35:
+        issues.append(
+            {
+                "type": "severe_noise",
+                "severity": "CRITICAL",
+                "confidence": 1.0,
+                "title": "Severe image noise detected",
+                "message": (
+                    "Noise levels are high enough to significantly obscure "
+                    "scene details and reduce downstream model reliability."
+                ),
+                "feature": "noise_estimate",
+                "value": round(noise, 2),
+            }
+        )
 
-    # --- Edge density issues ---
-    edt = thresholds.get("edge_density", {})
-    ed = features.get("edge_density", 0.05)
-    ed_p10 = edt.get("p10", 5.0)
+    elif noise >= 15:
+        issues.append(
+            {
+                "type": "image_noise",
+                "severity": "HIGH",
+                "confidence": 1.0,
+                "title": "Elevated image noise",
+                "message": (
+                    "Visible noise may interfere with object boundaries and "
+                    "fine visual details."
+                ),
+                "feature": "noise_estimate",
+                "value": round(noise, 2),
+            }
+        )
 
-    if ed < ed_p10:
-        ref_range = max(15.0 - ed_p10, 1.0)
-        issues.append({
-            "type": "low_structural_content",
-            "title": "Low Structural Content",
-            "severity": "MEDIUM",
-            "confidence": _confidence_from_deviation(ed, ed_p10, ref_range, "below"),
-            "feature_value": round(ed, 2),
-            "threshold": ed_p10,
-            "description": "Image contains few detectable edges or structural features. This may indicate a flat, featureless, or heavily blurred scene.",
-        })
+    # ------------------------------------------------------------------
+    # 5. Image corruption / severe degradation
+    # ------------------------------------------------------------------
+    #
+    # Important:
+    # Do NOT classify one weak feature alone as severe degradation.
+    #
+    # Severe degradation is inferred from combinations indicating that
+    # the image has lost significant usable visual information.
+
+    degradation_signals = 0
+
+    if sharpness < 15:
+        degradation_signals += 1
+
+    if entropy < 3.0:
+        degradation_signals += 1
+
+    if dynamic_range < 40:
+        degradation_signals += 1
+
+    if edge_density < 1.0:
+        degradation_signals += 1
+
+    if contrast < 15:
+        degradation_signals += 1
+
+    if degradation_signals >= 3:
+        issues.append(
+            {
+                "type": "severe_visual_degradation",
+                "severity": "CRITICAL",
+                "confidence": 1.0,
+                "title": "Severe visual degradation detected",
+                "message": (
+                    "Multiple image-quality signals indicate substantial loss "
+                    "of usable visual information. The image may be corrupted "
+                    "or severely degraded and is not recommended for reliable "
+                    "downstream analytics."
+                ),
+                "feature": "degradation_signals",
+                "value": float(degradation_signals),
+            }
+        )
+
+    elif degradation_signals == 2:
+        issues.append(
+            {
+                "type": "visual_degradation",
+                "severity": "HIGH",
+                "confidence": 1.0,
+                "title": "Significant visual degradation detected",
+                "message": (
+                    "Multiple quality indicators show reduced visual information. "
+                    "Downstream computer vision results may be less reliable."
+                ),
+                "feature": "degradation_signals",
+                "value": float(degradation_signals),
+            }
+        )
+
+    # ------------------------------------------------------------------
+    # 6. Potential visual defect
+    # ------------------------------------------------------------------
+    #
+    # This is intentionally a broad, explainable category for unusual
+    # feature combinations that do not map cleanly to blur/exposure/noise.
+    #
+    # Examples:
+    # - extremely low color information
+    # - unusually low entropy
+    # - extremely low texture
+    #
+    # Avoid creating a defect for normal grayscale/night scenes.
+
+    visual_defect_signals = 0
+
+    if entropy < 2.5:
+        visual_defect_signals += 1
+
+    if texture_complexity < 0.5:
+        visual_defect_signals += 1
+
+    if dynamic_range < 30:
+        visual_defect_signals += 1
+
+    if edge_density < 0.5:
+        visual_defect_signals += 1
+
+    if (
+        visual_defect_signals >= 2
+        and degradation_signals < 3
+    ):
+        issues.append(
+            {
+                "type": "potential_visual_defect",
+                "severity": "HIGH",
+                "confidence": 1.0,
+                "title": "Potential visual defect detected",
+                "message": (
+                    "Unusual visual characteristics suggest a possible capture, "
+                    "sensor, compression, or image-processing defect. Manual "
+                    "inspection is recommended."
+                ),
+                "feature": "visual_defect_signals",
+                "value": float(visual_defect_signals),
+            }
+        )
+
+    # ------------------------------------------------------------------
+    # 7. Additional technically justified issues
+    # ------------------------------------------------------------------
+
+    # Low contrast
+    if contrast < 20 and dynamic_range >= 40:
+        issues.append(
+            {
+                "type": "low_contrast",
+                "severity": "HIGH",
+                "confidence": 1.0,
+                "title": "Low image contrast",
+                "message": (
+                    "Weak contrast may reduce separation between objects and "
+                    "their background."
+                ),
+                "feature": "contrast",
+                "value": round(contrast, 2),
+            }
+        )
+
+    # Very limited dynamic range
+    if dynamic_range < 35 and degradation_signals < 3:
+        issues.append(
+            {
+                "type": "limited_dynamic_range",
+                "severity": "HIGH",
+                "confidence": 1.0,
+                "title": "Limited dynamic range",
+                "message": (
+                    "The image contains a narrow range of intensity values, "
+                    "which may hide useful scene detail."
+                ),
+                "feature": "dynamic_range",
+                "value": round(dynamic_range, 2),
+            }
+        )
+
+    # Very low saturation can be useful to flag in daylight colour imagery,
+    # but only when the scene otherwise has sufficient brightness.
+    if saturation < 15 and brightness > 80 and colorfulness < 15:
+        issues.append(
+            {
+                "type": "low_color_information",
+                "severity": "LOW",
+                "confidence": 1.0,
+                "title": "Low colour information",
+                "message": (
+                    "Colour information is limited. This may indicate a "
+                    "desaturated source, grayscale camera mode, or processing artifact."
+                ),
+                "feature": "saturation",
+                "value": round(saturation, 2),
+            }
+        )
 
     return issues

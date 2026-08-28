@@ -103,6 +103,9 @@ def compute_texture_complexity(gray: np.ndarray) -> float:
     hf_energy = np.sum(mag[mask]**2)
     return float(hf_energy / total_energy * 100)
 
+# UI/issue-detection edge density is expressed as a percentage (0-100).
+# This intentionally differs from extract_model_features(), where
+# edge_density remains a fraction (0-1) to match ml/train.py.
 
 def extract_all_features(img_bgr: np.ndarray) -> dict[str, float]:
     """Compute all image statistics for the UI display."""

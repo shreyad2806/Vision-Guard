@@ -1,44 +1,68 @@
-# Dependencies
-node_modules/
-
 # Python
-.venv/
-venv/
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
 
-# Environment
+# Environment files
 .env
 .env.*
-!.env.example
 
-# Build output
-dist/
-build/
+# Python cache / tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
+# Jupyter
+.ipynb_checkpoints/
 
-# Uploaded files
-backend/data/uploads/*
-!backend/data/uploads/.gitkeep
+# ML models and artifacts
+*.joblib
+*.pkl
+*.pt
+*.pth
+*.h5
+*.onnx
 
-# ML datasets and trained models
-ml/data/*
-!ml/data/.gitkeep
+# Generated model directory
+backend/models/*.joblib
+backend/models/*.pkl
 
-ml/models/*
-!ml/models/.gitkeep
+# Datasets - do not commit large raw/extracted datasets
+datasets/
+backend/datasets/
 
-# OS
+# Dataset archives
+*.zip
+*.tar
+*.tar.gz
+
+# Large generated training artifacts
+ml/training/checkpoints/
+ml/training/runs/
+
+# FreeBFF / local tool data
+.freebuff/
+
+# OS files
 .DS_Store
 Thumbs.db
 
-# IDE
-.vscode/
-.idea/
-
 # Logs
 *.log
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# Local application data
+backend/data/
+
+# Local ML generated data
+ml/data/
