@@ -13,13 +13,15 @@ import {
 } from "lucide-react";
 import type {
   AnalysisResult as AnalysisResultType,
-  QualityLabel,
 } from "../types/analysis";
 import { getAnalysisById } from "../services/api";
 import QualityScore from "../components/analysis/QualityScore";
 import IssueCard from "../components/analysis/IssueCard";
 import ImageStatistics from "../components/analysis/ImageStatistics";
 import FeatureInterpretation from "../components/analysis/FeatureInterpretation";
+import AnalyticsReadiness from "../components/analysis/AnalyticsReadiness";
+import ContextImpact from "../components/analysis/ContextImpact";
+import IssueExplanations from "../components/analysis/IssueExplanations";
 import StatusBadge from "../components/common/StatusBadge";
 import ErrorState from "../components/common/ErrorState";
 
@@ -57,21 +59,6 @@ function inferFormat(filename: string): string {
       return "WebP";
     default:
       return ext?.toUpperCase() ?? "Unknown";
-  }
-}
-
-function recommendationText(label: QualityLabel): string {
-  switch (label) {
-    case "Excellent":
-      return "Image quality is suitable for automated analysis";
-    case "Good":
-      return "Image quality is generally reliable, with minor degradation";
-    case "Fair":
-      return "Consider image enhancement for improved analysis";
-    case "Poor":
-      return "Review or recapture image";
-    case "Critical":
-      return "Recapture the image or perform manual review before downstream use";
   }
 }
 
@@ -151,27 +138,38 @@ export default function AnalysisDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchResult = async () => {
+  useEffect(() => {
+    async function load() {
+      if (!id) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getAnalysisById(id);
+        if (!data) setError("not_found");
+        else setResult(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load analysis.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [id]);
+
+  const refetch = async () => {
     if (!id) return;
     setLoading(true);
     setError(null);
     try {
       const data = await getAnalysisById(id);
-      if (!data) {
-        setError("not_found");
-      } else {
-        setResult(data);
-      }
+      if (!data) setError("not_found");
+      else setResult(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load analysis.");
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchResult();
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // -- Loading State --
   if (loading) {
@@ -205,7 +203,7 @@ export default function AnalysisDetail() {
         <ErrorState
           title="Unable to Load Analysis"
           message="We couldn't retrieve the requested analysis. Please try again."
-          onRetry={fetchResult}
+          onRetry={refetch}
         />
       </div>
     );
@@ -298,6 +296,14 @@ export default function AnalysisDetail() {
                   {result.image_url ? "—" : "Source unavailable"}
                 </span>
               </div>
+              {result.context && (
+                <div className="image-info-item">
+                  <span className="image-info-item__label">Context</span>
+                  <span className="image-info-item__value">
+                    {result.context}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -310,6 +316,17 @@ export default function AnalysisDetail() {
         />
       </div>
 
+      {/* Analytics Readiness (Phase 3) */}
+      {result.analytics_readiness_details && (
+        <div className="results-full">
+          <AnalyticsReadiness
+            score={result.analytics_readiness_score}
+            status={result.analytics_readiness_status}
+            details={result.analytics_readiness_details}
+          />
+        </div>
+      )}
+
       {/* Detected Issues */}
       <div className="results-full">
         <div className="card">
@@ -317,7 +334,9 @@ export default function AnalysisDetail() {
             <span className="card__heading-text">
               Detected Issues
               <span className="card__heading-sub">
-                — visual conditions identified during this analysis
+                — {hasIssues
+                  ? `${result.issues.length} issue${result.issues.length !== 1 ? "s" : ""}`
+                  : "none found"}
               </span>
             </span>
             <StatusBadge label={result.quality_label} size="sm" />
@@ -349,6 +368,16 @@ export default function AnalysisDetail() {
         </div>
       </div>
 
+      {/* Smart-City Context Impact (Phase 4) */}
+      {result.context && (
+        <div className="results-full">
+          <ContextImpact
+            context={result.context}
+            impacts={result.context_impacts ?? []}
+          />
+        </div>
+      )}
+
       {/* Image Quality Metrics */}
       <div className="results-full">
         <ImageStatistics statistics={result.statistics} />
@@ -358,6 +387,13 @@ export default function AnalysisDetail() {
       <div className="results-full">
         <FeatureInterpretation result={result} />
       </div>
+
+      {/* Issue Explanations (Phase 6) */}
+      {result.issue_explanations && result.issue_explanations.length > 0 && (
+        <div className="results-full">
+          <IssueExplanations explanations={result.issue_explanations} />
+        </div>
+      )}
 
       {/* Quality Assessment Summary */}
       <div className="results-full">
@@ -369,12 +405,14 @@ export default function AnalysisDetail() {
             </span>
           </div>
           <div className="summary-block">{result.summary}</div>
-          <div
-            className={`recommendation-block recommendation-block--${result.quality_label.toLowerCase()}`}
-          >
-            <span style={{ opacity: 0.7, fontWeight: 500 }}>Recommendation: </span>
-            {recommendationText(result.quality_label)}
-          </div>
+          {result.recommendation && (
+            <div
+              className={`recommendation-block recommendation-block--${result.quality_label.toLowerCase()}`}
+            >
+              <span style={{ opacity: 0.7, fontWeight: 500 }}>Recommendation: </span>
+              {result.recommendation}
+            </div>
+          )}
         </div>
       </div>
 
@@ -447,7 +485,7 @@ export default function AnalysisDetail() {
                 Model Version
               </span>
               <span className="metadata-item__value">
-                {result.model_version ?? "v1.1.0"}
+                {result.model_version ?? "—"}
               </span>
             </div>
           </div>

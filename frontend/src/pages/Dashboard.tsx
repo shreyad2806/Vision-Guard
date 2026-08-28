@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Sparkles, ArrowRight, ImageIcon } from "lucide-react";
+import { Sparkles, ArrowRight, ImageIcon, ChevronDown } from "lucide-react";
 import type { AnalysisResult as AnalysisResultType } from "../types/analysis";
+import type { PipelineContext } from "../services/api";
+import { analyzeImage, SUPPORTED_CONTEXTS } from "../services/api";
 import ImageUploader from "../components/upload/ImageUploader";
 import AnalysisResult from "../components/analysis/AnalysisResult";
 import QualityScore from "../components/analysis/QualityScore";
 import AnalysisProgress from "../components/analysis/AnalysisProgress";
 import ErrorState from "../components/common/ErrorState";
 import EmptyState from "../components/common/EmptyState";
-import { analyzeImage } from "../services/api";
 
 const ANALYSIS_STAGES = [
   "Validating image",
@@ -21,6 +22,7 @@ const MOCK_STAGE_DURATION_MS = 600;
 export default function Dashboard() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [context, setContext] = useState<PipelineContext>("CCTV Surveillance");
   const [loading, setLoading] = useState(false);
   const [stage, setStage] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -56,7 +58,7 @@ export default function Dashboard() {
   }, []);
 
   const handleAnalyze = useCallback(async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || loading) return;
     setLoading(true);
     setStage(0);
     setProgress(0);
@@ -78,7 +80,7 @@ export default function Dashboard() {
     }
 
     try {
-      const analysisResult = await analyzeImage(selectedFile);
+      const analysisResult = await analyzeImage(selectedFile, context);
       setProgress(100);
       // Brief pause at 100% before showing results
       await new Promise((r) => setTimeout(r, 300));
@@ -92,7 +94,7 @@ export default function Dashboard() {
       stageTimers.current = [];
       setLoading(false);
     }
-  }, [selectedFile]);
+  }, [selectedFile, context, loading]);
 
   return (
     <div>
@@ -134,7 +136,41 @@ export default function Dashboard() {
                 previewUrl={previewUrl}
                 disabled={loading}
               />
-              <div style={{ display: "flex", justifyContent: "center", marginTop: 20 }}>
+
+              {/* Context selector */}
+              <div className="context-selector">
+                <label className="context-selector__label">
+                  Pipeline Context
+                </label>
+                <div className="context-selector__select-wrap">
+                  <select
+                    className="context-selector__select"
+                    value={context}
+                    onChange={(e) =>
+                      setContext(e.target.value as PipelineContext)
+                    }
+                    disabled={loading}
+                  >
+                    {SUPPORTED_CONTEXTS.map((ctx) => (
+                      <option key={ctx} value={ctx}>
+                        {ctx}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={14}
+                    className="context-selector__chevron"
+                  />
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  marginTop: 20,
+                }}
+              >
                 <button
                   type="button"
                   className="btn btn--primary btn--primary-lg"
@@ -150,7 +186,14 @@ export default function Dashboard() {
         </div>
 
         {/* Right: Quality Score / Ready State / Analyzing / Empty State */}
-        <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div
+          className="card"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           {result && !loading ? (
             <QualityScore
               score={result.quality_score}
@@ -174,12 +217,29 @@ export default function Dashboard() {
               <img
                 src={previewUrl}
                 alt={selectedFile.name}
-                style={{ maxWidth: "100%", maxHeight: 220, borderRadius: 8, marginBottom: 12 }}
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: 220,
+                  borderRadius: 8,
+                  marginBottom: 12,
+                }}
               />
-              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
+              <p
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "var(--text)",
+                }}
+              >
                 Ready for analysis
               </p>
-              <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "var(--text-muted)",
+                  marginTop: 4,
+                }}
+              >
                 Click <strong>Analyze Image</strong> to evaluate quality
               </p>
             </div>

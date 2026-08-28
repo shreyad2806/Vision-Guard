@@ -158,6 +158,17 @@ function ScoreBar({ score }: { score: number }) {
   );
 }
 
+function ReadinessBadge({ score, status }: { score: number; status: string }) {
+  return (
+    <span
+      className="readiness-mini-badge"
+      style={{ color: scoreColor(score), borderColor: scoreColor(score) }}
+    >
+      {Math.round(score)} — {status}
+    </span>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Skeleton Rows
 // ---------------------------------------------------------------------------
@@ -232,6 +243,14 @@ function AnalysisRow({ a }: { a: AnalysisResultType }) {
       {/* Status */}
       <StatusBadge label={a.quality_label} size="sm" />
 
+      {/* Readiness */}
+      {a.analytics_readiness_score !== undefined && (
+        <ReadinessBadge
+          score={a.analytics_readiness_score}
+          status={a.analytics_readiness_status}
+        />
+      )}
+
       {/* Issues */}
       <span
         className={`history-analysis-row__issues ${
@@ -286,6 +305,12 @@ function MobileCard({ a }: { a: AnalysisResultType }) {
       <div className="history-mobile-card__metrics">
         <ScoreBar score={a.quality_score} />
         <StatusBadge label={a.quality_label} size="sm" />
+        {a.analytics_readiness_score !== undefined && (
+          <ReadinessBadge
+            score={a.analytics_readiness_score}
+            status={a.analytics_readiness_status}
+          />
+        )}
       </div>
 
       <span
@@ -317,7 +342,25 @@ export default function History() {
   const [labelFilter, setLabelFilter] = useState<QualityLabel | "">("");
   const [sort, setSort] = useState<SortOption>("newest");
 
-  const fetchAnalyses = async () => {
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getAnalyses();
+        setAnalyses(data);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to load history.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  const refetch = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -331,10 +374,6 @@ export default function History() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchAnalyses();
-  }, []);
 
   const filtered = useMemo(() => {
     const result = analyses.filter((a) => {
@@ -399,7 +438,7 @@ export default function History() {
         <ErrorState
           title="Unable to load analysis history"
           message="We couldn't retrieve your previous analyses. Please try again."
-          onRetry={fetchAnalyses}
+          onRetry={refetch}
         />
       </div>
     );

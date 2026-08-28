@@ -8,9 +8,12 @@ export const mockAcceptable: AnalysisResult = {
   analysis_confidence: 94,
   issues: [
     {
-      type: "minor_noise",
-      title: "Minor Noise",
-      severity: "LOW",
+      type: "image_noise",
+      severity: "low",
+      metric: "noise_estimate",
+      value: 8.3,
+      threshold: 10.0,
+      impact: "Slight luminance noise detected in shadow regions.",
       confidence: 0.72,
       description:
         "Slight luminance noise detected in shadow regions. This level of noise is unlikely to affect object detection or classification accuracy.",
@@ -33,9 +36,32 @@ export const mockAcceptable: AnalysisResult = {
   ],
   summary:
     "The image demonstrates excellent overall quality (score: 87/100). Minor issues were noted but do not materially affect quality assessment.",
+  recommendation: "Image is suitable for automated analysis.",
   created_at: "2026-08-27T09:15:00Z",
   processing_time_ms: 1240,
-  model_version: "visionguard-iqa-v1.1",
+  model_version: "visionguard-iqa-v2.0",
+  analytics_readiness_score: 78,
+  analytics_readiness_status: "READY",
+  analytics_readiness_details: {
+    base_quality_score: 87.0,
+    blur_penalty: 0.0,
+    exposure_penalty: 0.0,
+    noise_penalty: 5.0,
+    corruption_penalty: 0.0,
+    information_penalty: 4.0,
+  },
+  context: "CCTV Surveillance",
+  context_impacts: [],
+  issue_explanations: [
+    {
+      issue: "Mild Noise",
+      evidence: { metric: "noise_estimate", value: 8.3, threshold: 10.0 },
+      why_it_matters:
+        "Slight noise may affect fine-grained texture analysis in edge cases.",
+      recommendation:
+        "Consider denoising filters if high precision is required.",
+    },
+  ],
 };
 
 export const mockDegraded: AnalysisResult = {
@@ -46,25 +72,34 @@ export const mockDegraded: AnalysisResult = {
   analysis_confidence: 89,
   issues: [
     {
-      type: "low_sharpness",
-      title: "Low Sharpness",
-      severity: "HIGH",
+      type: "insufficient_sharpness",
+      severity: "high",
+      metric: "laplacian_variance",
+      value: 18.7,
+      threshold: 25.0,
+      impact: "Object detection and classification may be unreliable.",
       confidence: 0.91,
       description:
         "The image appears blurry or lacks sufficient edge detail. Edge information is below the expected threshold for reliable visual analysis.",
     },
     {
-      type: "low_brightness",
-      title: "Low Brightness",
-      severity: "MEDIUM",
+      type: "underexposure",
+      severity: "moderate",
+      metric: "mean_brightness",
+      value: 68.9,
+      threshold: 80.0,
+      impact: "Shadow detail may be lost, reducing detection confidence.",
       confidence: 0.84,
       description:
         "The image appears darker than the expected range. Shadow detail may be lost.",
     },
     {
-      type: "low_saturation",
-      title: "Low Saturation",
-      severity: "LOW",
+      type: "low_color_information",
+      severity: "low",
+      metric: "saturation",
+      value: 22.8,
+      threshold: 25.0,
+      impact: "Color-based features may have reduced discriminative power.",
       confidence: 0.76,
       description:
         "Colors appear relatively muted or desaturated. This may affect color-based feature extraction.",
@@ -86,10 +121,71 @@ export const mockDegraded: AnalysisResult = {
     "Edge density is below the median range for training images.",
   ],
   summary:
-    "The image exhibits moderate quality issues (Low Sharpness, Low Brightness, Low Saturation) with a quality score of 52/100. These conditions may reduce the reliability of downstream analysis. Consider image enhancement or manual review.",
+    "The image exhibits moderate quality issues (Insufficient Sharpness, Underexposure, Low Color Information) with a quality score of 52/100. These conditions may reduce the reliability of downstream analysis.",
+  recommendation:
+    "Consider image enhancement or manual review before analytics.",
   created_at: "2026-08-27T07:42:00Z",
   processing_time_ms: 980,
-  model_version: "visionguard-iqa-v1.1",
+  model_version: "visionguard-iqa-v2.0",
+  analytics_readiness_score: 42,
+  analytics_readiness_status: "LIMITED READINESS",
+  analytics_readiness_details: {
+    base_quality_score: 52.0,
+    blur_penalty: 18.0,
+    exposure_penalty: 8.0,
+    noise_penalty: 0.0,
+    corruption_penalty: 0.0,
+    information_penalty: 5.0,
+  },
+  context: "Traffic Monitoring",
+  context_impacts: [
+    {
+      issue_type: "insufficient_sharpness",
+      context: "Traffic Monitoring",
+      impact:
+        "Vehicle detection and license-plate recognition may be unreliable.",
+    },
+    {
+      issue_type: "underexposure",
+      context: "Traffic Monitoring",
+      impact:
+        "Low-light conditions may reduce vehicle tracking accuracy at dawn/dusk.",
+    },
+  ],
+  issue_explanations: [
+    {
+      issue: "Insufficient Sharpness",
+      evidence: {
+        metric: "laplacian_variance",
+        value: 18.7,
+        threshold: 25.0,
+      },
+      why_it_matters:
+        "Blurred images reduce object detection and classification accuracy.",
+      recommendation:
+        "Improve camera focus or use a higher-resolution sensor.",
+    },
+    {
+      issue: "Underexposure",
+      evidence: {
+        metric: "mean_brightness",
+        value: 68.9,
+        threshold: 80.0,
+      },
+      why_it_matters:
+        "Dark images lose shadow detail needed for reliable analysis.",
+      recommendation:
+        "Adjust camera exposure settings or add supplemental lighting.",
+    },
+    {
+      issue: "Low Color Information",
+      evidence: { metric: "saturation", value: 22.8, threshold: 25.0 },
+      why_it_matters:
+        "Desaturated images reduce color-based feature extraction accuracy.",
+      recommendation:
+        "Check camera white-balance settings and lighting conditions.",
+    },
+  ],
 };
 
 export const mockDefective: AnalysisResult = {
@@ -100,25 +196,34 @@ export const mockDefective: AnalysisResult = {
   analysis_confidence: 96,
   issues: [
     {
-      type: "high_brightness",
-      title: "High Brightness",
-      severity: "HIGH",
+      type: "overexposure",
+      severity: "high",
+      metric: "overexposure_pct",
+      value: 28.5,
+      threshold: 10.0,
+      impact: "Highlight clipping may obscure important visual details.",
       confidence: 0.89,
       description:
         "The image may be overexposed. Highlight clipping may have occurred, resulting in loss of detail in bright areas.",
     },
     {
-      type: "low_sharpness",
-      title: "Low Sharpness",
-      severity: "HIGH",
+      type: "severe_blur",
+      severity: "high",
+      metric: "laplacian_variance",
+      value: 5.2,
+      threshold: 15.0,
+      impact: "Object detection and tracking will likely fail.",
       confidence: 0.92,
       description:
         "The image appears blurry or lacks sufficient edge detail. Edge information is below the expected threshold for reliable visual analysis.",
     },
     {
-      type: "low_saturation",
-      title: "Low Saturation",
-      severity: "HIGH",
+      type: "low_color_information",
+      severity: "high",
+      metric: "saturation",
+      value: 8.1,
+      threshold: 25.0,
+      impact: "Color-based analysis features are severely compromised.",
       confidence: 0.87,
       description:
         "Colors appear relatively muted or desaturated.",
@@ -140,10 +245,71 @@ export const mockDefective: AnalysisResult = {
     "Edge density is very low, suggesting limited structural content.",
   ],
   summary:
-    "Significant quality degradation detected (High Brightness, Low Sharpness, Low Saturation) with a quality score of 18/100. Image quality is substantially compromised. Review or recapture is recommended.",
+    "Significant quality degradation detected (Overexposure, Severe Blur, Low Color Information) with a quality score of 18/100. Image quality is substantially compromised. Review or recapture is recommended.",
+  recommendation:
+    "Image is unreliable for automated analysis. Recapture or manual review is required.",
   created_at: "2026-08-26T22:08:00Z",
   processing_time_ms: 1120,
-  model_version: "visionguard-iqa-v1.1",
+  model_version: "visionguard-iqa-v2.0",
+  analytics_readiness_score: 5,
+  analytics_readiness_status: "CRITICAL",
+  analytics_readiness_details: {
+    base_quality_score: 18.0,
+    blur_penalty: 25.0,
+    exposure_penalty: 15.0,
+    noise_penalty: 0.0,
+    corruption_penalty: 0.0,
+    information_penalty: 10.0,
+  },
+  context: "Drone Imagery",
+  context_impacts: [
+    {
+      issue_type: "severe_blur",
+      context: "Drone Imagery",
+      impact:
+        "Aerial mapping, 3D reconstruction, and ground-truth labeling may be unreliable.",
+    },
+    {
+      issue_type: "overexposure",
+      context: "Drone Imagery",
+      impact:
+        "Sun glare or reflection overexposure may obscure terrain features.",
+    },
+  ],
+  issue_explanations: [
+    {
+      issue: "Overexposure",
+      evidence: {
+        metric: "overexposure_pct",
+        value: 28.5,
+        threshold: 10.0,
+      },
+      why_it_matters:
+        "Highlight clipping destroys detail needed for reliable visual analysis.",
+      recommendation:
+        "Adjust exposure compensation or use HDR imaging.",
+    },
+    {
+      issue: "Severe Blur",
+      evidence: {
+        metric: "laplacian_variance",
+        value: 5.2,
+        threshold: 15.0,
+      },
+      why_it_matters:
+        "Critical blur destroys fine detail needed for object detection and tracking.",
+      recommendation:
+        "Recapture with stabilised camera, faster shutter, or improved autofocus.",
+    },
+    {
+      issue: "Low Color Information",
+      evidence: { metric: "saturation", value: 8.1, threshold: 25.0 },
+      why_it_matters:
+        "Heavily desaturated images reduce color-based analysis reliability.",
+      recommendation:
+        "Check camera sensor and lighting conditions.",
+    },
+  ],
 };
 
 /** Additional history entries for the history page */
@@ -159,9 +325,12 @@ export const mockHistory: AnalysisResult[] = [
     analysis_confidence: 91,
     issues: [
       {
-        type: "high_brightness",
-        title: "High Brightness",
-        severity: "LOW",
+        type: "overexposure",
+        severity: "low",
+        metric: "overexposure_pct",
+        value: 7.2,
+        threshold: 10.0,
+        impact: "Mild highlight clipping in upper regions.",
         confidence: 0.68,
         description:
           "Mild highlight clipping in the upper-right quadrant. Main subject area remains well-exposed.",
@@ -183,10 +352,38 @@ export const mockHistory: AnalysisResult[] = [
       "Edge density is sufficient for structural feature extraction.",
     ],
     summary:
-      "The image demonstrates good overall quality (score: 72/100). Minor conditions detected (High Brightness) but are unlikely to significantly affect downstream analysis.",
+      "The image demonstrates good overall quality (score: 72/100). Minor conditions detected (Overexposure) but are unlikely to significantly affect downstream analysis.",
+    recommendation:
+      "Image is suitable for most analytics tasks.",
     created_at: "2026-08-26T15:30:00Z",
     processing_time_ms: 1050,
-    model_version: "visionguard-iqa-v1.1",
+    model_version: "visionguard-iqa-v2.0",
+    analytics_readiness_score: 65,
+    analytics_readiness_status: "READY",
+    analytics_readiness_details: {
+      base_quality_score: 72.0,
+      blur_penalty: 0.0,
+      exposure_penalty: 5.0,
+      noise_penalty: 0.0,
+      corruption_penalty: 0.0,
+      information_penalty: 2.0,
+    },
+    context: "CCTV Surveillance",
+    context_impacts: [],
+    issue_explanations: [
+      {
+        issue: "Mild Overexposure",
+        evidence: {
+          metric: "overexposure_pct",
+          value: 7.2,
+          threshold: 10.0,
+        },
+        why_it_matters:
+          "Mild highlight clipping may affect bright-region analysis.",
+        recommendation:
+          "Adjust exposure settings for more consistent lighting.",
+      },
+    ],
   },
   {
     analysis_id: "ana_005",
@@ -196,17 +393,23 @@ export const mockHistory: AnalysisResult[] = [
     analysis_confidence: 87,
     issues: [
       {
-        type: "low_sharpness",
-        title: "Low Sharpness",
-        severity: "HIGH",
+        type: "insufficient_sharpness",
+        severity: "high",
+        metric: "laplacian_variance",
+        value: 14.3,
+        threshold: 25.0,
+        impact: "Object detection and classification may be unreliable.",
         confidence: 0.88,
         description:
           "The image appears blurry or lacks sufficient edge detail.",
       },
       {
-        type: "low_saturation",
-        title: "Low Saturation",
-        severity: "MEDIUM",
+        type: "low_color_information",
+        severity: "moderate",
+        metric: "saturation",
+        value: 18.5,
+        threshold: 25.0,
+        impact: "Color-based features may have reduced discriminative power.",
         confidence: 0.81,
         description:
           "Colors appear relatively muted or desaturated.",
@@ -228,10 +431,53 @@ export const mockHistory: AnalysisResult[] = [
       "Edge density is below the median range for training images.",
     ],
     summary:
-      "The image exhibits moderate quality issues (Low Sharpness, Low Saturation) with a quality score of 41/100. These conditions may reduce the reliability of downstream analysis. Consider image enhancement or manual review.",
+      "The image exhibits moderate quality issues (Insufficient Sharpness, Low Color Information) with a quality score of 41/100. These conditions may reduce the reliability of downstream analysis.",
+    recommendation:
+      "Consider image enhancement or manual review before analytics.",
     created_at: "2026-08-25T11:22:00Z",
     processing_time_ms: 940,
-    model_version: "visionguard-iqa-v1.1",
+    model_version: "visionguard-iqa-v2.0",
+    analytics_readiness_score: 32,
+    analytics_readiness_status: "NOT READY",
+    analytics_readiness_details: {
+      base_quality_score: 41.0,
+      blur_penalty: 18.0,
+      exposure_penalty: 0.0,
+      noise_penalty: 5.0,
+      corruption_penalty: 0.0,
+      information_penalty: 5.0,
+    },
+    context: "CCTV Surveillance",
+    context_impacts: [
+      {
+        issue_type: "insufficient_sharpness",
+        context: "CCTV Surveillance",
+        impact:
+          "Face recognition and person-tracking accuracy will be significantly reduced.",
+      },
+    ],
+    issue_explanations: [
+      {
+        issue: "Insufficient Sharpness",
+        evidence: {
+          metric: "laplacian_variance",
+          value: 14.3,
+          threshold: 25.0,
+        },
+        why_it_matters:
+          "Blurred images reduce object detection and classification accuracy.",
+        recommendation:
+          "Improve camera focus or use a higher-resolution sensor.",
+      },
+      {
+        issue: "Low Color Information",
+        evidence: { metric: "saturation", value: 18.5, threshold: 25.0 },
+        why_it_matters:
+          "Desaturated images reduce color-based feature extraction accuracy.",
+        recommendation:
+          "Check camera white-balance settings and lighting conditions.",
+      },
+    ],
   },
   {
     analysis_id: "ana_006",
@@ -257,9 +503,24 @@ export const mockHistory: AnalysisResult[] = [
     ],
     summary:
       "Image quality is excellent with no significant issues detected. The image is well-suited for all downstream analysis tasks.",
+    recommendation:
+      "No action required — image meets all quality standards.",
     created_at: "2026-08-25T08:05:00Z",
     processing_time_ms: 890,
-    model_version: "visionguard-iqa-v1.1",
+    model_version: "visionguard-iqa-v2.0",
+    analytics_readiness_score: 88,
+    analytics_readiness_status: "HIGHLY READY",
+    analytics_readiness_details: {
+      base_quality_score: 91.0,
+      blur_penalty: 0.0,
+      exposure_penalty: 0.0,
+      noise_penalty: 0.0,
+      corruption_penalty: 0.0,
+      information_penalty: 3.0,
+    },
+    context: "CCTV Surveillance",
+    context_impacts: [],
+    issue_explanations: [],
   },
   {
     analysis_id: "ana_007",
@@ -269,9 +530,12 @@ export const mockHistory: AnalysisResult[] = [
     analysis_confidence: 85,
     issues: [
       {
-        type: "low_brightness",
-        title: "Low Brightness",
-        severity: "HIGH",
+        type: "underexposure",
+        severity: "high",
+        metric: "mean_brightness",
+        value: 52.7,
+        threshold: 80.0,
+        impact: "Shadow detail may be lost, reducing detection confidence.",
         confidence: 0.87,
         description:
           "The image appears darker than the expected range. Shadow detail may be lost.",
@@ -293,10 +557,45 @@ export const mockHistory: AnalysisResult[] = [
       "Edge density is below the median range for training images.",
     ],
     summary:
-      "The image exhibits moderate quality issues (Low Brightness) with a quality score of 55/100. These conditions may reduce the reliability of downstream analysis. Consider image enhancement or manual review.",
+      "The image exhibits moderate quality issues (Underexposure) with a quality score of 55/100. These conditions may reduce the reliability of downstream analysis.",
+    recommendation:
+      "Adjust camera exposure settings or add supplemental lighting.",
     created_at: "2026-08-24T19:48:00Z",
     processing_time_ms: 1180,
-    model_version: "visionguard-iqa-v1.1",
+    model_version: "visionguard-iqa-v2.0",
+    analytics_readiness_score: 38,
+    analytics_readiness_status: "NOT READY",
+    analytics_readiness_details: {
+      base_quality_score: 55.0,
+      blur_penalty: 0.0,
+      exposure_penalty: 15.0,
+      noise_penalty: 0.0,
+      corruption_penalty: 0.0,
+      information_penalty: 5.0,
+    },
+    context: "CCTV Surveillance",
+    context_impacts: [
+      {
+        issue_type: "underexposure",
+        context: "CCTV Surveillance",
+        impact:
+          "Person detection and face recognition accuracy will be significantly reduced.",
+      },
+    ],
+    issue_explanations: [
+      {
+        issue: "Underexposure",
+        evidence: {
+          metric: "mean_brightness",
+          value: 52.7,
+          threshold: 80.0,
+        },
+        why_it_matters:
+          "Dark images lose shadow detail needed for reliable analysis.",
+        recommendation:
+          "Adjust camera exposure settings or add supplemental lighting.",
+      },
+    ],
   },
   {
     analysis_id: "ana_008",
@@ -321,10 +620,25 @@ export const mockHistory: AnalysisResult[] = [
       "Edge density is sufficient for structural feature extraction.",
     ],
     summary:
-      "The image demonstrates excellent overall quality (score: 82/100). Minor issues were noted but do not materially affect quality assessment.",
+      "The image demonstrates excellent overall quality (score: 82/100). No significant quality issues detected.",
+    recommendation:
+      "No action required — image meets all quality standards.",
     created_at: "2026-08-24T14:15:00Z",
     processing_time_ms: 1020,
-    model_version: "visionguard-iqa-v1.1",
+    model_version: "visionguard-iqa-v2.0",
+    analytics_readiness_score: 74,
+    analytics_readiness_status: "READY",
+    analytics_readiness_details: {
+      base_quality_score: 82.0,
+      blur_penalty: 0.0,
+      exposure_penalty: 0.0,
+      noise_penalty: 0.0,
+      corruption_penalty: 0.0,
+      information_penalty: 4.0,
+    },
+    context: "Traffic Monitoring",
+    context_impacts: [],
+    issue_explanations: [],
   },
   {
     analysis_id: "ana_009",
@@ -334,17 +648,23 @@ export const mockHistory: AnalysisResult[] = [
     analysis_confidence: 92,
     issues: [
       {
-        type: "low_sharpness",
-        title: "Low Sharpness",
-        severity: "HIGH",
+        type: "insufficient_sharpness",
+        severity: "high",
+        metric: "laplacian_variance",
+        value: 10.1,
+        threshold: 25.0,
+        impact: "Object detection and classification may be unreliable.",
         confidence: 0.89,
         description:
           "The image appears blurry or lacks sufficient edge detail.",
       },
       {
-        type: "low_saturation",
-        title: "Low Saturation",
-        severity: "MEDIUM",
+        type: "low_color_information",
+        severity: "moderate",
+        metric: "saturation",
+        value: 19.8,
+        threshold: 25.0,
+        impact: "Color-based features may have reduced discriminative power.",
         confidence: 0.73,
         description:
           "Colors appear relatively muted or desaturated.",
@@ -366,10 +686,53 @@ export const mockHistory: AnalysisResult[] = [
       "Edge density is below the median range for training images.",
     ],
     summary:
-      "Significant quality degradation detected (Low Sharpness, Low Saturation) with a quality score of 28/100. Image quality is substantially compromised. Review or recapture is recommended.",
+      "Significant quality degradation detected (Insufficient Sharpness, Low Color Information) with a quality score of 28/100. Image quality is substantially compromised. Review or recapture is recommended.",
+    recommendation:
+      "Image is unreliable for automated analysis. Recapture or manual review is required.",
     created_at: "2026-08-23T16:40:00Z",
     processing_time_ms: 1150,
-    model_version: "visionguard-iqa-v1.1",
+    model_version: "visionguard-iqa-v2.0",
+    analytics_readiness_score: 18,
+    analytics_readiness_status: "NOT READY",
+    analytics_readiness_details: {
+      base_quality_score: 28.0,
+      blur_penalty: 18.0,
+      exposure_penalty: 0.0,
+      noise_penalty: 8.0,
+      corruption_penalty: 0.0,
+      information_penalty: 5.0,
+    },
+    context: "Infrastructure Inspection",
+    context_impacts: [
+      {
+        issue_type: "insufficient_sharpness",
+        context: "Infrastructure Inspection",
+        impact:
+          "Small structural defects may not be reliably visible.",
+      },
+    ],
+    issue_explanations: [
+      {
+        issue: "Insufficient Sharpness",
+        evidence: {
+          metric: "laplacian_variance",
+          value: 10.1,
+          threshold: 25.0,
+        },
+        why_it_matters:
+          "Blurred images reduce object detection and classification accuracy.",
+        recommendation:
+          "Improve camera focus or use a higher-resolution sensor.",
+      },
+      {
+        issue: "Low Color Information",
+        evidence: { metric: "saturation", value: 19.8, threshold: 25.0 },
+        why_it_matters:
+          "Desaturated images reduce color-based feature extraction accuracy.",
+        recommendation:
+          "Check camera white-balance settings and lighting conditions.",
+      },
+    ],
   },
   {
     analysis_id: "ana_010",
@@ -379,9 +742,12 @@ export const mockHistory: AnalysisResult[] = [
     analysis_confidence: 88,
     issues: [
       {
-        type: "high_brightness",
-        title: "High Brightness",
-        severity: "MEDIUM",
+        type: "overexposure",
+        severity: "moderate",
+        metric: "overexposure_pct",
+        value: 12.3,
+        threshold: 10.0,
+        impact: "Bright regions may obscure detail in exposed areas.",
         confidence: 0.82,
         description:
           "The image may be overexposed. Highlight clipping may have occurred.",
@@ -403,10 +769,38 @@ export const mockHistory: AnalysisResult[] = [
       "Edge density is below the median range for training images.",
     ],
     summary:
-      "The image demonstrates good overall quality (score: 63/100). Minor conditions detected (High Brightness) but are unlikely to significantly affect downstream analysis.",
+      "The image demonstrates good overall quality (score: 63/100). Minor conditions detected (Overexposure) but are unlikely to significantly affect downstream analysis.",
+    recommendation:
+      "Image is suitable for most analytics tasks.",
     created_at: "2026-08-23T09:05:00Z",
     processing_time_ms: 1080,
-    model_version: "visionguard-iqa-v1.1",
+    model_version: "visionguard-iqa-v2.0",
+    analytics_readiness_score: 55,
+    analytics_readiness_status: "LIMITED READINESS",
+    analytics_readiness_details: {
+      base_quality_score: 63.0,
+      blur_penalty: 0.0,
+      exposure_penalty: 8.0,
+      noise_penalty: 0.0,
+      corruption_penalty: 0.0,
+      information_penalty: 3.0,
+    },
+    context: "CCTV Surveillance",
+    context_impacts: [],
+    issue_explanations: [
+      {
+        issue: "Overexposure",
+        evidence: {
+          metric: "overexposure_pct",
+          value: 12.3,
+          threshold: 10.0,
+        },
+        why_it_matters:
+          "Highlight clipping may affect bright-region analysis.",
+        recommendation:
+          "Adjust exposure compensation or use HDR imaging.",
+      },
+    ],
   },
   {
     analysis_id: "ana_011",
@@ -432,9 +826,24 @@ export const mockHistory: AnalysisResult[] = [
     ],
     summary:
       "Image quality is excellent with no significant issues detected. The image is well-suited for all downstream analysis tasks.",
+    recommendation:
+      "No action required — image meets all quality standards.",
     created_at: "2026-08-22T21:30:00Z",
     processing_time_ms: 920,
-    model_version: "visionguard-iqa-v1.1",
+    model_version: "visionguard-iqa-v2.0",
+    analytics_readiness_score: 91,
+    analytics_readiness_status: "HIGHLY READY",
+    analytics_readiness_details: {
+      base_quality_score: 94.0,
+      blur_penalty: 0.0,
+      exposure_penalty: 0.0,
+      noise_penalty: 0.0,
+      corruption_penalty: 0.0,
+      information_penalty: 3.0,
+    },
+    context: "CCTV Surveillance",
+    context_impacts: [],
+    issue_explanations: [],
   },
   {
     analysis_id: "ana_012",
@@ -444,17 +853,23 @@ export const mockHistory: AnalysisResult[] = [
     analysis_confidence: 86,
     issues: [
       {
-        type: "low_sharpness",
-        title: "Low Sharpness",
-        severity: "MEDIUM",
+        type: "insufficient_sharpness",
+        severity: "moderate",
+        metric: "laplacian_variance",
+        value: 20.5,
+        threshold: 25.0,
+        impact: "Object detection accuracy may be reduced.",
         confidence: 0.79,
         description:
           "The image appears blurry or lacks sufficient edge detail.",
       },
       {
-        type: "low_brightness",
-        title: "Low Brightness",
-        severity: "MEDIUM",
+        type: "underexposure",
+        severity: "moderate",
+        metric: "mean_brightness",
+        value: 76.4,
+        threshold: 80.0,
+        impact: "Shadow detail may be lost, reducing detection confidence.",
         confidence: 0.77,
         description:
           "The image appears darker than the expected range. Shadow detail may be lost.",
@@ -476,10 +891,63 @@ export const mockHistory: AnalysisResult[] = [
       "Edge density is below the median range for training images.",
     ],
     summary:
-      "The image exhibits moderate quality issues (Low Sharpness, Low Brightness) with a quality score of 45/100. These conditions may reduce the reliability of downstream analysis. Consider image enhancement or manual review.",
+      "The image exhibits moderate quality issues (Insufficient Sharpness, Underexposure) with a quality score of 45/100. These conditions may reduce the reliability of downstream analysis.",
+    recommendation:
+      "Consider image enhancement or manual review before analytics.",
     created_at: "2026-08-22T17:55:00Z",
     processing_time_ms: 1010,
-    model_version: "visionguard-iqa-v1.1",
+    model_version: "visionguard-iqa-v2.0",
+    analytics_readiness_score: 35,
+    analytics_readiness_status: "NOT READY",
+    analytics_readiness_details: {
+      base_quality_score: 45.0,
+      blur_penalty: 10.0,
+      exposure_penalty: 8.0,
+      noise_penalty: 0.0,
+      corruption_penalty: 0.0,
+      information_penalty: 5.0,
+    },
+    context: "Smart Campus",
+    context_impacts: [
+      {
+        issue_type: "insufficient_sharpness",
+        context: "Smart Campus",
+        impact:
+          "Student/visitor detection and facial recognition accuracy will be reduced.",
+      },
+      {
+        issue_type: "underexposure",
+        context: "Smart Campus",
+        impact:
+          "Low-light conditions may reduce occupancy monitoring accuracy.",
+      },
+    ],
+    issue_explanations: [
+      {
+        issue: "Insufficient Sharpness",
+        evidence: {
+          metric: "laplacian_variance",
+          value: 20.5,
+          threshold: 25.0,
+        },
+        why_it_matters:
+          "Blurred images reduce object detection and classification accuracy.",
+        recommendation:
+          "Improve camera focus or use a higher-resolution sensor.",
+      },
+      {
+        issue: "Underexposure",
+        evidence: {
+          metric: "mean_brightness",
+          value: 76.4,
+          threshold: 80.0,
+        },
+        why_it_matters:
+          "Dark images lose shadow detail needed for reliable analysis.",
+        recommendation:
+          "Adjust camera exposure settings or add supplemental lighting.",
+      },
+    ],
   },
   {
     analysis_id: "ana_013",
@@ -504,10 +972,25 @@ export const mockHistory: AnalysisResult[] = [
       "Edge density is sufficient for structural feature extraction.",
     ],
     summary:
-      "The image demonstrates excellent overall quality (score: 88/100). Minor issues were noted but do not materially affect quality assessment.",
+      "The image demonstrates excellent overall quality (score: 88/100). No significant quality issues detected.",
+    recommendation:
+      "No action required — image meets all quality standards.",
     created_at: "2026-08-22T10:12:00Z",
     processing_time_ms: 960,
-    model_version: "visionguard-iqa-v1.1",
+    model_version: "visionguard-iqa-v2.0",
+    analytics_readiness_score: 82,
+    analytics_readiness_status: "HIGHLY READY",
+    analytics_readiness_details: {
+      base_quality_score: 88.0,
+      blur_penalty: 0.0,
+      exposure_penalty: 0.0,
+      noise_penalty: 0.0,
+      corruption_penalty: 0.0,
+      information_penalty: 3.0,
+    },
+    context: "CCTV Surveillance",
+    context_impacts: [],
+    issue_explanations: [],
   },
   {
     analysis_id: "ana_014",
@@ -517,17 +1000,23 @@ export const mockHistory: AnalysisResult[] = [
     analysis_confidence: 98,
     issues: [
       {
-        type: "low_brightness",
-        title: "Low Brightness",
-        severity: "HIGH",
+        type: "underexposure",
+        severity: "high",
+        metric: "mean_brightness",
+        value: 48.9,
+        threshold: 80.0,
+        impact: "Shadow detail may be lost, reducing detection confidence.",
         confidence: 0.95,
         description:
           "The image appears darker than the expected range. Shadow detail may be lost.",
       },
       {
-        type: "low_saturation",
-        title: "Low Saturation",
-        severity: "HIGH",
+        type: "low_color_information",
+        severity: "high",
+        metric: "saturation",
+        value: 4.2,
+        threshold: 25.0,
+        impact: "Color-based analysis features are severely compromised.",
         confidence: 0.97,
         description:
           "Colors appear relatively muted or desaturated.",
@@ -550,9 +1039,58 @@ export const mockHistory: AnalysisResult[] = [
     ],
     summary:
       "Image quality is critically degraded (score: 12/100). The image is unreliable for automated analysis. Recapture or manual review is required.",
+    recommendation:
+      "Image is unreliable for automated analysis. Recapture or manual review is required.",
     created_at: "2026-08-21T23:18:00Z",
     processing_time_ms: 1340,
-    model_version: "visionguard-iqa-v1.1",
+    model_version: "visionguard-iqa-v2.0",
+    analytics_readiness_score: 2,
+    analytics_readiness_status: "CRITICAL",
+    analytics_readiness_details: {
+      base_quality_score: 12.0,
+      blur_penalty: 0.0,
+      exposure_penalty: 15.0,
+      noise_penalty: 0.0,
+      corruption_penalty: 0.0,
+      information_penalty: 10.0,
+    },
+    context: "Infrastructure Inspection",
+    context_impacts: [
+      {
+        issue_type: "underexposure",
+        context: "Infrastructure Inspection",
+        impact:
+          "Structural defects in shadowed regions may be invisible to detection algorithms.",
+      },
+      {
+        issue_type: "low_color_information",
+        context: "Infrastructure Inspection",
+        impact:
+          "Color-based corrosion or material degradation indicators will be unreliable.",
+      },
+    ],
+    issue_explanations: [
+      {
+        issue: "Underexposure",
+        evidence: {
+          metric: "mean_brightness",
+          value: 48.9,
+          threshold: 80.0,
+        },
+        why_it_matters:
+          "Dark images lose shadow detail needed for reliable analysis.",
+        recommendation:
+          "Adjust camera exposure settings or add supplemental lighting.",
+      },
+      {
+        issue: "Low Color Information",
+        evidence: { metric: "saturation", value: 4.2, threshold: 25.0 },
+        why_it_matters:
+          "Heavily desaturated images reduce color-based analysis reliability.",
+        recommendation:
+          "Check camera sensor and lighting conditions.",
+      },
+    ],
   },
 ];
 

@@ -1792,6 +1792,318 @@ img {
 }
 
 /* =========================================================================
+   Context Selector
+   ========================================================================= */
+
+.context-selector {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.context-selector__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.context-selector__select-wrap {
+  position: relative;
+}
+
+.context-selector__select {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  outline: none;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.context-selector__select:focus {
+  border-color: var(--accent);
+}
+
+.context-selector__chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* =========================================================================
+   Analytics Readiness Card (Phase 3)
+   ========================================================================= */
+
+.readiness-card {
+  border-color: var(--border-light);
+}
+
+.readiness-card__main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.readiness-card__score {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.readiness-card__value {
+  font-size: 36px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+.readiness-card__max {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.readiness-card__status {
+  display: flex;
+  align-items: center;
+}
+
+.readiness-card__status-badge {
+  padding: 4px 12px;
+  border: 1px solid;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.readiness-card__bar {
+  margin-bottom: 16px;
+}
+
+.readiness-card__penalties {
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.readiness-card__penalties-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.readiness-penalty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.readiness-penalty__label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.readiness-penalty__value {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--red);
+}
+
+.readiness-card__base {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* =========================================================================
+   Context Impact (Phase 4)
+   ========================================================================= */
+
+.context-impact__context-badge {
+  margin-bottom: 14px;
+}
+
+.context-impact__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.context-impact__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.context-impact__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.context-impact__issue-type {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: capitalize;
+}
+
+.context-impact__text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.context-impact__empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* =========================================================================
+   Issue Explanations (Phase 6)
+   ========================================================================= */
+
+.explanations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.explanation-card {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.explanation-card__header {
+  margin-bottom: 10px;
+}
+
+.explanation-card__issue {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.explanation-card__evidence {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+}
+
+.explanation-card__evidence-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.explanation-card__evidence-detail {
+  font-size: 13px;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.explanation-card__section {
+  margin-top: 8px;
+}
+
+.explanation-card__section-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.explanation-card__text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* =========================================================================
+   Issue Card — Evidence Section
+   ========================================================================= */
+
+.issue-card__evidence {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.issue-card__evidence-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.issue-card__evidence-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.issue-card__evidence-value {
+  font-size: 13px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.issue-card__description {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+/* =========================================================================
    Responsive — Tablet
    ========================================================================= */
 

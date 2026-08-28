@@ -12,16 +12,14 @@ interface StatusBadgeProps {
   showIcon?: boolean;
 }
 
-const QUALITY_LABELS = ["Excellent", "Good", "Fair", "Poor", "Critical"];
-
 function labelIcon(label: QualityLabel | Severity, size: number) {
-  if (label === "Excellent" || label === "Good" || label === "LOW") {
+  if (label === "Excellent" || label === "Good" || label === "low") {
     return <CheckCircle2 size={size} />;
   }
-  if (label === "Fair" || label === "DEGRADED" || label === "MEDIUM") {
+  if (label === "Fair" || label === "moderate") {
     return <AlertTriangle size={size} />;
   }
-  if (label === "Poor" || label === "Critical" || label === "HIGH") {
+  if (label === "Poor" || label === "Critical" || label === "high" || label === "critical") {
     return <XCircle size={size} />;
   }
   return <Info size={size} />;

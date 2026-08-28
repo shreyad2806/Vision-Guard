@@ -11,7 +11,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 const http = axios.create({
   baseURL: API_BASE,
-  timeout: 30_000,
+  timeout: 60_000,
 });
 
 /** Simulate network delay for mock mode */
@@ -20,28 +20,94 @@ function delay(ms: number): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Public API — swap the bodies with real http calls when the backend is ready
+// Error helpers
 // ---------------------------------------------------------------------------
 
-/** Upload an image for analysis (mock returns the acceptable sample). */
-export async function analyzeImage(_file: File): Promise<AnalysisResult> {
-  if (API_BASE) {
-    const form = new FormData();
-    form.append("file", _file);
-    const { data } = await http.post<AnalysisResult>("/api/v1/analyze", form);
-    return data;
+/** Parse an axios/API error into a user-friendly message. */
+function parseApiError(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    const status = err.response?.status;
+    const detail = err.response?.data?.detail;
+
+    if (!err.response) {
+      // Network failure
+      return "Unable to reach the server. Please check your network connection and try again.";
+    }
+
+    if (status === 413) {
+      return detail ?? "The uploaded file exceeds the maximum allowed size.";
+    }
+    if (status === 400) {
+      return detail ?? "The request was invalid. Please check the uploaded file.";
+    }
+    if (status === 422) {
+      return detail ?? "The server could not process the request.";
+    }
+    if (status === 500) {
+      return detail ?? "An internal server error occurred. Please try again later.";
+    }
+    if (status === 503) {
+      return detail ?? "The service is temporarily unavailable. Please try again later.";
+    }
+
+    return detail ?? `Server error (${status}). Please try again.`;
   }
 
-  // Mock: simulate staged analysis
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return "An unexpected error occurred.";
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/** Supported smart-city pipeline contexts. */
+export const SUPPORTED_CONTEXTS = [
+  "CCTV Surveillance",
+  "Traffic Monitoring",
+  "Crowd Monitoring",
+  "Drone Imagery",
+  "Infrastructure Inspection",
+  "Smart Campus",
+] as const;
+
+export type PipelineContext = (typeof SUPPORTED_CONTEXTS)[number];
+
+/** Upload an image for analysis. */
+export async function analyzeImage(
+  file: File,
+  context: PipelineContext = "CCTV Surveillance",
+): Promise<AnalysisResult> {
+  if (API_BASE) {
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const { data } = await http.post<AnalysisResult>(
+        `/api/v1/analyze?context=${encodeURIComponent(context)}`,
+        form,
+      );
+      return data;
+    } catch (err) {
+      throw new Error(parseApiError(err), { cause: err });
+    }
+  }
+
+  // Mock mode
   await delay(2400);
-  return { ...mockAcceptable };
+  return { ...mockAcceptable, context };
 }
 
 /** Fetch the list of past analyses. */
 export async function getAnalyses(): Promise<AnalysisResult[]> {
   if (API_BASE) {
-    const { data } = await http.get<AnalysisResult[]>("/api/v1/analyses");
-    return data;
+    try {
+      const { data } = await http.get<AnalysisResult[]>("/api/v1/analyses");
+      return data;
+    } catch (err) {
+      throw new Error(parseApiError(err), { cause: err });
+    }
   }
 
   await delay(600);
@@ -53,8 +119,15 @@ export async function getAnalysisById(
   id: string,
 ): Promise<AnalysisResult | null> {
   if (API_BASE) {
-    const { data } = await http.get<AnalysisResult>(`/api/v1/analyses/${id}`);
-    return data;
+    try {
+      const { data } = await http.get<AnalysisResult>(`/api/v1/analyses/${id}`);
+      return data;
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
+        return null;
+      }
+      throw new Error(parseApiError(err), { cause: err });
+    }
   }
 
   await delay(400);

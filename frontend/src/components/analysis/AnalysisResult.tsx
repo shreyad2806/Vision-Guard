@@ -1,9 +1,21 @@
-import { FileText, ClipboardCheck, Hash, Clock, Cpu, Timer } from "lucide-react";
-import type { AnalysisResult as AnalysisResultType, QualityLabel } from "../../types/analysis";
+import {
+  FileText,
+  ClipboardCheck,
+  Hash,
+  Clock,
+  Cpu,
+  Timer,
+} from "lucide-react";
+import type {
+  AnalysisResult as AnalysisResultType,
+} from "../../types/analysis";
 import QualityScore from "./QualityScore";
 import IssueCard from "./IssueCard";
 import ImageStatistics from "./ImageStatistics";
 import FeatureInterpretation from "./FeatureInterpretation";
+import AnalyticsReadiness from "./AnalyticsReadiness";
+import ContextImpact from "./ContextImpact";
+import IssueExplanations from "./IssueExplanations";
 
 interface AnalysisResultProps {
   result: AnalysisResultType;
@@ -27,25 +39,12 @@ function formatProcessingTime(ms: number): string {
   return `${(ms / 1000).toFixed(2)} sec`;
 }
 
-function recommendationText(label: QualityLabel): string {
-  switch (label) {
-    case "Excellent":
-      return "Recommendation: Image quality is suitable for automated analysis";
-    case "Good":
-      return "Recommendation: Image quality is generally reliable";
-    case "Fair":
-      return "Recommendation: Consider image enhancement for improved analysis";
-    case "Poor":
-      return "Recommendation: Review or recapture image";
-    case "Critical":
-      return "Recommendation: Recapture image or perform manual review";
-  }
-}
-
 export default function AnalysisResult({ result }: AnalysisResultProps) {
+  const hasIssues = result.issues.length > 0;
+
   return (
     <div>
-      {/* Two-column workspace: Score + Issues */}
+      {/* ── Overall Quality ── */}
       <div className="results-grid">
         <QualityScore
           score={result.quality_score}
@@ -53,63 +52,111 @@ export default function AnalysisResult({ result }: AnalysisResultProps) {
           analysisConfidence={result.analysis_confidence}
         />
 
+        {/* ── Detected Issues ── */}
         <div className="card">
           <div className="card__heading">
             <span className="card__heading-text">
               Detected Issues
               <span className="card__heading-sub">
-                — {result.issues.length === 0
-                  ? "none found"
-                  : `${result.issues.length} issue${result.issues.length !== 1 ? "s" : ""}`}
+                — {hasIssues
+                  ? `${result.issues.length} issue${result.issues.length !== 1 ? "s" : ""}`
+                  : "none found"}
               </span>
             </span>
           </div>
-          {result.issues.length === 0 ? (
-            <div style={{ padding: "20px 0", textAlign: "center" }}>
-              <p style={{ fontSize: 14, color: "var(--green)", fontWeight: 600 }}>
-                ✓ No significant quality issues detected
-              </p>
-              <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
-                Image meets all quality standards
-              </p>
-            </div>
-          ) : (
+          {hasIssues ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {result.issues.map((issue, i) => (
                 <IssueCard key={`${issue.type}-${i}`} issue={issue} />
               ))}
             </div>
+          ) : (
+            <div style={{ padding: "20px 0", textAlign: "center" }}>
+              <p
+                style={{
+                  fontSize: 14,
+                  color: "var(--green)",
+                  fontWeight: 600,
+                }}
+              >
+                ✓ No significant quality issues detected
+              </p>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "var(--text-muted)",
+                  marginTop: 4,
+                }}
+              >
+                Image meets all quality standards
+              </p>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Image Quality Metrics */}
+      {/* ── Analytics Readiness (Phase 3) ── */}
+      {result.analytics_readiness_details && (
+        <div className="results-full">
+          <AnalyticsReadiness
+            score={result.analytics_readiness_score}
+            status={result.analytics_readiness_status}
+            details={result.analytics_readiness_details}
+          />
+        </div>
+      )}
+
+      {/* ── Smart-City Context Impact (Phase 4) ── */}
+      {result.context && (
+        <div className="results-full">
+          <ContextImpact
+            context={result.context}
+            impacts={result.context_impacts ?? []}
+          />
+        </div>
+      )}
+
+      {/* ── Quality Metrics ── */}
       <div className="results-full">
         <ImageStatistics statistics={result.statistics} />
       </div>
 
-      {/* Feature Interpretation */}
+      {/* ── Why This Decision? ── */}
       <div className="results-full">
         <FeatureInterpretation result={result} />
       </div>
 
-      {/* Quality Assessment Summary + Recommendation */}
+      {/* ── Explainability (Phase 6) ── */}
+      {result.issue_explanations && result.issue_explanations.length > 0 && (
+        <div className="results-full">
+          <IssueExplanations explanations={result.issue_explanations} />
+        </div>
+      )}
+
+      {/* ── Summary + Recommendation ── */}
       <div className="results-full">
         <div className="card">
           <div className="card__heading">
             <ClipboardCheck size={15} className="card__heading-icon" />
-            <span className="card__heading-text">Quality Assessment Summary</span>
+            <span className="card__heading-text">
+              Quality Assessment Summary
+            </span>
           </div>
           <div className="summary-block">{result.summary}</div>
-          <div
-            className={`recommendation-block recommendation-block--${result.quality_label.toLowerCase()}`}
-          >
-            {recommendationText(result.quality_label)}
-          </div>
+          {result.recommendation && (
+            <div
+              className={`recommendation-block recommendation-block--${result.quality_label.toLowerCase()}`}
+            >
+              <span style={{ opacity: 0.7, fontWeight: 500 }}>
+                Recommendation:{" "}
+              </span>
+              {result.recommendation}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Analysis Metadata */}
+      {/* ── Analysis Metadata ── */}
       <div className="results-full">
         <div className="card">
           <div className="card__heading">
@@ -119,7 +166,14 @@ export default function AnalysisResult({ result }: AnalysisResultProps) {
           <div className="metadata-grid">
             <div className="metadata-item">
               <span className="metadata-item__label">
-                <Hash size={10} style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }} />
+                <Hash
+                  size={10}
+                  style={{
+                    display: "inline",
+                    verticalAlign: "middle",
+                    marginRight: 3,
+                  }}
+                />
                 Analysis ID
               </span>
               <span className="metadata-item__value">
@@ -128,7 +182,14 @@ export default function AnalysisResult({ result }: AnalysisResultProps) {
             </div>
             <div className="metadata-item">
               <span className="metadata-item__label">
-                <Clock size={10} style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }} />
+                <Clock
+                  size={10}
+                  style={{
+                    display: "inline",
+                    verticalAlign: "middle",
+                    marginRight: 3,
+                  }}
+                />
                 Analyzed
               </span>
               <span className="metadata-item__value">
@@ -137,7 +198,14 @@ export default function AnalysisResult({ result }: AnalysisResultProps) {
             </div>
             <div className="metadata-item">
               <span className="metadata-item__label">
-                <Timer size={10} style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }} />
+                <Timer
+                  size={10}
+                  style={{
+                    display: "inline",
+                    verticalAlign: "middle",
+                    marginRight: 3,
+                  }}
+                />
                 Processing Time
               </span>
               <span className="metadata-item__value">
@@ -146,11 +214,18 @@ export default function AnalysisResult({ result }: AnalysisResultProps) {
             </div>
             <div className="metadata-item">
               <span className="metadata-item__label">
-                <Cpu size={10} style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }} />
+                <Cpu
+                  size={10}
+                  style={{
+                    display: "inline",
+                    verticalAlign: "middle",
+                    marginRight: 3,
+                  }}
+                />
                 Model Version
               </span>
               <span className="metadata-item__value">
-                {result.model_version ?? "v1.1.0"}
+                {result.model_version ?? "—"}
               </span>
             </div>
           </div>
