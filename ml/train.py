@@ -40,11 +40,7 @@ BACKEND_DIR = PROJECT_ROOT / "backend"
 BACKEND_MODELS = BACKEND_DIR / "models"
 BACKEND_MODELS.mkdir(parents=True, exist_ok=True)
 
-# Add backend to path for imports
-sys.path.insert(0, str(BACKEND_DIR))
-sys.path.insert(0, str(BASE_DIR / "training"))
-
-from dataset_loader import load_kadid, load_koniq, get_quality_bins, QUALITY_BIN_EDGES  # noqa: E402
+from ml.training.dataset_loader import load_kadid, load_koniq, get_quality_bins, QUALITY_BIN_EDGES
 
 # ---------------------------------------------------------------------------
 # Feature extraction (must match backend/apps/ml/feature_extractor.py exactly)
@@ -113,7 +109,8 @@ def spearman_correlation(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     if len(y_true) < 2:
         return 0.0
     corr, _ = scipy_stats.spearmanr(y_true, y_pred)
-    return float(corr) if not np.isnan(corr) else 0.0
+    corr_val = float(corr)
+    return 0.0 if np.isnan(corr_val) else corr_val
 
 
 # ---------------------------------------------------------------------------
@@ -125,7 +122,7 @@ def stratified_split(
     dataset_labels: np.ndarray,
     test_size: float = 0.2,
     random_state: int = 42,
-) -> tuple:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Stratified split by quality bins, preserving dataset proportions."""
     rng = np.random.RandomState(random_state)
     bins = get_quality_bins(y)
