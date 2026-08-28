@@ -295,3 +295,44 @@ class HealthResponse(BaseModel):
             "VisionGuard backend or model version."
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# Model info response (Phase 7)
+# ---------------------------------------------------------------------------
+
+class ModelInfoResponse(BaseModel):
+    """Detailed model and pipeline information."""
+
+    model_loaded: bool = Field(
+        ...,
+        description="Whether a trained model is loaded.",
+    )
+    model_version: str = Field(
+        ...,
+        description="Version identifier of the loaded model.",
+    )
+    feature_names: list[str] = Field(
+        ...,
+        description="Feature names expected by the model.",
+    )
+    calibrator_loaded: bool = Field(
+        ...,
+        description="Whether the IsotonicRegression calibrator is loaded.",
+    )
+    metadata_loaded: bool = Field(
+        ...,
+        description="Whether model training metadata is loaded.",
+    )
+    supported_contexts: list[str] = Field(
+        ...,
+        description="Supported smart-city pipeline contexts.",
+    )
+    supported_extensions: list[str] = Field(
+        ...,
+        description="Accepted image file extensions.",
+    )
+    max_upload_size_mb: int = Field(
+        ...,
+        description="Maximum upload file size in megabytes.",
+    )
