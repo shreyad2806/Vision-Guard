@@ -16,25 +16,22 @@ class QualityLabel(str, Enum):
 
 
 class Severity(str, Enum):
-    LOW = "LOW"
-    MEDIUM = "MEDIUM"
-    HIGH = "HIGH"
-    CRITICAL = "CRITICAL"
+    low = "low"
+    moderate = "moderate"
+    high = "high"
+    critical = "critical"
 
 
 class Issue(BaseModel):
     type: str = Field(..., description="Detected issue type, e.g. 'low_brightness'")
-    title: str = Field(default="", description="Human-readable issue title")
-    severity: Severity = Field(..., description="LOW, MEDIUM, or HIGH")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence 0-1")
-    description: str = Field(
-        default="",
-        description="Detailed description of the issue",
-    )
-    explanation: str = Field(
-        default="",
-        description="Human-readable explanation (alias for description)",
-    )
+    severity: Severity = Field(..., description="low, moderate, high, or critical")
+    metric: str = Field(..., description="The feature name or metric key")
+    value: float = Field(..., description="The observed value of the metric")
+    threshold: float = Field(..., description="The warning/critical threshold value")
+    impact: str = Field(..., description="The impact description")
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score 0-1")
+    description: str | None = Field(default=None, description="Detailed description of the issue")
+    explanation: str | None = Field(default=None, description="Human-readable explanation")
 
 
 class QualityAssessment(BaseModel):

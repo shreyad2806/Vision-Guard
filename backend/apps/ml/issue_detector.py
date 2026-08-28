@@ -14,10 +14,57 @@ Required capabilities:
 - Additional technically justified issues
 """
 
-from __future__ import annotations
+from typing import Any, Mapping
 
-from typing import Mapping
 
+SEVERITY_LOW = "low"
+SEVERITY_MODERATE = "moderate"
+SEVERITY_HIGH = "high"
+SEVERITY_CRITICAL = "critical"
+
+
+def build_issue(
+    issue_type: str,
+    severity: str,
+    metric: str,
+    value: float,
+    threshold: float,
+    impact: str,
+    confidence: float = 1.0,
+    description: str | None = None,
+) -> dict[str, Any]:
+    """Build a normalized, explainable issue response."""
+
+    valid_severities = {
+        SEVERITY_LOW,
+        SEVERITY_MODERATE,
+        SEVERITY_HIGH,
+        SEVERITY_CRITICAL,
+    }
+
+    if severity not in valid_severities:
+        raise ValueError(
+            f"Invalid severity '{severity}'. "
+            f"Expected one of: {sorted(valid_severities)}"
+        )
+
+    issue = {
+        "type": issue_type,
+        "severity": severity,
+        "metric": metric,
+        "value": round(float(value), 4),
+        "threshold": round(float(threshold), 4),
+        "impact": impact,
+        "confidence": round(
+            max(0.0, min(float(confidence), 1.0)),
+            2,
+        ),
+    }
+
+    if description:
+        issue["description"] = description
+
+    return issue
 
 def _severity_from_ratio(value: float, warning_threshold: float, severe_threshold: float) -> str:
     """
@@ -85,56 +132,49 @@ def detect_issues(features: Mapping[str, float]) -> list[dict]:
     # ------------------------------------------------------------------
     # 1. Blur / insufficient sharpness
     # ------------------------------------------------------------------
-    #
-    # Variance of Laplacian:
-    # lower value -> fewer high-frequency edges -> possible blur.
-    #
-    # Thresholds should later be calibrated against the smart-city
-    # benchmark dataset.
 
     if sharpness < 15:
         issues.append(
-            {
-                "type": "severe_blur",
-                "severity": "CRITICAL",
-                "confidence": 1.0,
-                "title": "Severe blur detected",
-                "message": (
-                    "Image sharpness is critically low. Fine details may not "
-                    "be reliable for downstream computer vision analytics."
+            build_issue(
+                issue_type="severe_blur",
+                severity=SEVERITY_CRITICAL,
+                metric="laplacian_variance",
+                value=sharpness,
+                threshold=15.0,
+                impact=(
+                    "Fine details, object boundaries, pedestrians, and vehicles "
+                    "may not be reliably detected."
                 ),
-                "feature": "sharpness",
-                "value": round(sharpness, 2),
-            }
+                confidence=1.0,
+                description=(
+                    "Image sharpness is critically low, indicating severe blur "
+                    "or substantial loss of high-frequency detail."
+                ),
+            )
         )
 
     elif sharpness < 40:
         issues.append(
-            {
-                "type": "insufficient_sharpness",
-                "severity": "HIGH",
-                "confidence": 1.0,
-                "title": "Insufficient image sharpness",
-                "message": (
-                    "Image sharpness is below the recommended range and may "
-                    "reduce detection reliability for small or distant objects."
+            build_issue(
+                issue_type="insufficient_sharpness",
+                severity=SEVERITY_HIGH,
+                metric="laplacian_variance",
+                value=sharpness,
+                threshold=40.0,
+                impact=(
+                    "Reduced edge detail may lower detection reliability for "
+                    "small, distant, or fast-moving objects."
                 ),
-                "feature": "sharpness",
-                "value": round(sharpness, 2),
-            }
+                confidence=1.0,
+                description=(
+                    "Image sharpness is below the recommended range."
+            ),
         )
+    )
 
     # ------------------------------------------------------------------
     # 2. Underexposure
     # ------------------------------------------------------------------
-    #
-    # PRIMARY SIGNAL:
-    # Percentage of pixels below the dark clipping threshold.
-    #
-    # SUPPORTING SIGNAL:
-    # Mean brightness.
-    #
-    # Only ONE final underexposure issue can be created.
 
     brightness_underexposed = brightness < 70
     brightness_severe_underexposed = brightness < 40
@@ -143,52 +183,48 @@ def detect_issues(features: Mapping[str, float]) -> list[dict]:
     pixel_severe_underexposed = under_pct >= 40
 
     if pixel_severe_underexposed or (
-        under_pct >= 25 and brightness_severe_underexposed
+    under_pct >= 35 and brightness_severe_underexposed
     ):
         issues.append(
-            {
-                "type": "severe_underexposure",
-                "severity": "CRITICAL",
-                "confidence": 1.0,
-                "title": "Severe underexposure detected",
-                "message": (
-                    "A large portion of the image contains critically dark "
-                    "pixels, causing loss of visual detail for downstream analytics."
+            build_issue(
+                issue_type="underexposure",
+                severity=SEVERITY_CRITICAL,
+                metric="dark_pixel_ratio",
+                value=under_pct,
+                threshold=50.0,
+                impact=(
+                    "Severe shadow clipping may hide pedestrians, vehicles, "
+                    "road markings, and other scene details."
                 ),
-                "feature": "underexposure_pct",
-                "value": round(under_pct, 2),
-            }
+                confidence=1.0,
+                description=(
+                    "A large portion of the image contains severely dark pixels."
+                ),
+            )
         )
 
     elif pixel_underexposed or (
-        brightness_underexposed and under_pct >= 5
+        brightness_underexposed and under_pct >= 10
     ):
         issues.append(
-            {
-                "type": "underexposure",
-                "severity": "HIGH",
-                "confidence": 1.0,
-                "title": "Underexposure detected",
-                "message": (
-                    "Dark regions occupy a significant portion of the image. "
-                    "Object and scene details may be difficult to analyse."
+            build_issue(
+                issue_type="underexposure",
+                severity=SEVERITY_HIGH,
+                metric="dark_pixel_ratio",
+                value=under_pct,
+                threshold=25.0,
+                impact=(
+                    "May reduce pedestrian and vehicle detection reliability."
                 ),
-                "feature": "underexposure_pct",
-                "value": round(under_pct, 2),
-            }
+                confidence=1.0,
+                description=(
+                    "A significant portion of the image is underexposed."
+                ),
+            )
         )
-
     # ------------------------------------------------------------------
     # 3. Overexposure
     # ------------------------------------------------------------------
-    #
-    # PRIMARY SIGNAL:
-    # Percentage of pixels above the highlight clipping threshold.
-    #
-    # SUPPORTING SIGNAL:
-    # Mean brightness.
-    #
-    # Only ONE final overexposure issue can be created.
 
     brightness_overexposed = brightness > 185
     brightness_severe_overexposed = brightness > 220
@@ -197,39 +233,45 @@ def detect_issues(features: Mapping[str, float]) -> list[dict]:
     pixel_severe_overexposed = over_pct >= 30
 
     if pixel_severe_overexposed or (
-        over_pct >= 20 and brightness_severe_overexposed
+    over_pct >= 20 and brightness_severe_overexposed
     ):
         issues.append(
-            {
-                "type": "severe_overexposure",
-                "severity": "CRITICAL",
-                "confidence": 1.0,
-                "title": "Severe overexposure detected",
-                "message": (
-                    "A large portion of the image is affected by clipped bright "
-                    "regions, resulting in substantial loss of visual information."
+            build_issue(
+                issue_type="overexposure",
+                severity=SEVERITY_CRITICAL,
+                metric="bright_pixel_ratio",
+                value=over_pct,
+                threshold=30.0,
+                impact=(
+                    "Clipped highlights may hide important visual details "
+                    "in vehicles, road surfaces, signs, and bright regions."
                 ),
-                "feature": "overexposure_pct",
-                "value": round(over_pct, 2),
-            }
+                confidence=1.0,
+                description=(
+                    "A large portion of the image contains clipped bright pixels."
+                ),
+            )
         )
 
     elif pixel_overexposed or (
         brightness_overexposed and over_pct >= 3
     ):
         issues.append(
-            {
-                "type": "overexposure",
-                "severity": "HIGH",
-                "confidence": 1.0,
-                "title": "Overexposure detected",
-                "message": (
-                    "Bright regions are clipping visual information and may "
-                    "reduce the reliability of downstream image analytics."
+            build_issue(
+                issue_type="overexposure",
+                severity=SEVERITY_HIGH,
+                metric="bright_pixel_ratio",
+                value=over_pct,
+                threshold=10.0,
+                impact=(
+                    "Highlight clipping may reduce reliability of downstream "
+                    "visual analytics."
                 ),
-                "feature": "overexposure_pct",
-                "value": round(over_pct, 2),
-            }
+                confidence=1.0,
+                description=(
+                    "Bright regions are losing visual information."
+                ),
+            )
         )
 
     # ------------------------------------------------------------------
@@ -238,45 +280,40 @@ def detect_issues(features: Mapping[str, float]) -> list[dict]:
 
     if noise >= 35:
         issues.append(
-            {
-                "type": "severe_noise",
-                "severity": "CRITICAL",
-                "confidence": 1.0,
-                "title": "Severe image noise detected",
-                "message": (
-                    "Noise levels are high enough to significantly obscure "
-                    "scene details and reduce downstream model reliability."
+            build_issue(
+                issue_type="image_noise",
+                severity=SEVERITY_CRITICAL,
+                metric="noise_estimate",
+                value=noise,
+                threshold=35.0,
+                impact=(
+                    "Severe noise may obscure object boundaries and significantly "
+                    "reduce downstream analytics reliability."
                 ),
-                "feature": "noise_estimate",
-                "value": round(noise, 2),
-            }
+                confidence=1.0,
+                description="Image noise is critically high.",
+            )
         )
 
     elif noise >= 15:
         issues.append(
-            {
-                "type": "image_noise",
-                "severity": "HIGH",
-                "confidence": 1.0,
-                "title": "Elevated image noise",
-                "message": (
-                    "Visible noise may interfere with object boundaries and "
-                    "fine visual details."
+            build_issue(
+                issue_type="image_noise",
+                severity=SEVERITY_HIGH,
+                metric="noise_estimate",
+                value=noise,
+                threshold=15.0,
+                impact=(
+                    "Noise may interfere with object boundaries and fine details."
                 ),
-                "feature": "noise_estimate",
-                "value": round(noise, 2),
-            }
+                confidence=1.0,
+                description="Image contains elevated noise.",
+            )
         )
 
     # ------------------------------------------------------------------
     # 5. Image corruption / severe degradation
     # ------------------------------------------------------------------
-    #
-    # Important:
-    # Do NOT classify one weak feature alone as severe degradation.
-    #
-    # Severe degradation is inferred from combinations indicating that
-    # the image has lost significant usable visual information.
 
     degradation_signals = 0
 
@@ -297,51 +334,47 @@ def detect_issues(features: Mapping[str, float]) -> list[dict]:
 
     if degradation_signals >= 3:
         issues.append(
-            {
-                "type": "severe_visual_degradation",
-                "severity": "CRITICAL",
-                "confidence": 1.0,
-                "title": "Severe visual degradation detected",
-                "message": (
-                    "Multiple image-quality signals indicate substantial loss "
-                    "of usable visual information. The image may be corrupted "
-                    "or severely degraded and is not recommended for reliable "
-                    "downstream analytics."
+            build_issue(
+                issue_type="severe_visual_degradation",
+                severity=SEVERITY_CRITICAL,
+                metric="degradation_signal_count",
+                value=degradation_signals,
+                threshold=3.0,
+                impact=(
+                    "Multiple quality failures indicate substantial loss of usable "
+                    "visual information. The image may be unreliable for smart-city "
+                    "analytics."
                 ),
-                "feature": "degradation_signals",
-                "value": float(degradation_signals),
-            }
+                confidence=1.0,
+                description=(
+                    "Multiple independent image-quality signals indicate severe "
+                    "visual degradation or possible corruption."
+                ),
+            )
         )
 
     elif degradation_signals == 2:
         issues.append(
-            {
-                "type": "visual_degradation",
-                "severity": "HIGH",
-                "confidence": 1.0,
-                "title": "Significant visual degradation detected",
-                "message": (
-                    "Multiple quality indicators show reduced visual information. "
-                    "Downstream computer vision results may be less reliable."
+            build_issue(
+                issue_type="visual_degradation",
+                severity=SEVERITY_HIGH,
+                metric="degradation_signal_count",
+                value=degradation_signals,
+                threshold=2.0,
+                impact=(
+                    "Multiple quality indicators may reduce the reliability of "
+                    "downstream computer vision results."
                 ),
-                "feature": "degradation_signals",
-                "value": float(degradation_signals),
-            }
+                confidence=0.9,
+                description=(
+                    "Multiple image-quality signals show reduced visual information."
+                ),
+            )
         )
 
     # ------------------------------------------------------------------
     # 6. Potential visual defect
     # ------------------------------------------------------------------
-    #
-    # This is intentionally a broad, explainable category for unusual
-    # feature combinations that do not map cleanly to blur/exposure/noise.
-    #
-    # Examples:
-    # - extremely low color information
-    # - unusually low entropy
-    # - extremely low texture
-    #
-    # Avoid creating a defect for normal grayscale/night scenes.
 
     visual_defect_signals = 0
 
@@ -357,24 +390,24 @@ def detect_issues(features: Mapping[str, float]) -> list[dict]:
     if edge_density < 0.5:
         visual_defect_signals += 1
 
-    if (
-        visual_defect_signals >= 2
-        and degradation_signals < 3
-    ):
+    if visual_defect_signals >= 2 and degradation_signals < 3:
         issues.append(
-            {
-                "type": "potential_visual_defect",
-                "severity": "HIGH",
-                "confidence": 1.0,
-                "title": "Potential visual defect detected",
-                "message": (
-                    "Unusual visual characteristics suggest a possible capture, "
-                    "sensor, compression, or image-processing defect. Manual "
-                    "inspection is recommended."
+            build_issue(
+                issue_type="potential_visual_defect",
+                severity=SEVERITY_HIGH,
+                metric="visual_anomaly_signal_count",
+                value=visual_defect_signals,
+                threshold=2.0,
+                impact=(
+                    "Possible capture, sensor, compression, or processing defects "
+                    "may reduce the reliability of downstream analytics."
                 ),
-                "feature": "visual_defect_signals",
-                "value": float(visual_defect_signals),
-            }
+                confidence=0.85,
+                description=(
+                    "Multiple unusual visual characteristics suggest a possible "
+                    "visual anomaly or defect."
+                ),
+            )
         )
 
     # ------------------------------------------------------------------
@@ -384,53 +417,58 @@ def detect_issues(features: Mapping[str, float]) -> list[dict]:
     # Low contrast
     if contrast < 20 and dynamic_range >= 40:
         issues.append(
-            {
-                "type": "low_contrast",
-                "severity": "HIGH",
-                "confidence": 1.0,
-                "title": "Low image contrast",
-                "message": (
+            build_issue(
+                issue_type="low_contrast",
+                severity=SEVERITY_HIGH,
+                metric="contrast",
+                value=contrast,
+                threshold=20.0,
+                impact=(
                     "Weak contrast may reduce separation between objects and "
                     "their background."
                 ),
-                "feature": "contrast",
-                "value": round(contrast, 2),
-            }
+                confidence=1.0,
+                description="Image contrast is below the recommended range.",
+            )
         )
 
     # Very limited dynamic range
     if dynamic_range < 35 and degradation_signals < 3:
         issues.append(
-            {
-                "type": "limited_dynamic_range",
-                "severity": "HIGH",
-                "confidence": 1.0,
-                "title": "Limited dynamic range",
-                "message": (
-                    "The image contains a narrow range of intensity values, "
-                    "which may hide useful scene detail."
+            build_issue(
+                issue_type="limited_dynamic_range",
+                severity=SEVERITY_HIGH,
+                metric="dynamic_range",
+                value=dynamic_range,
+                threshold=35.0,
+                impact=(
+                    "A narrow tonal range may hide useful scene details and "
+                    "reduce feature separation."
                 ),
-                "feature": "dynamic_range",
-                "value": round(dynamic_range, 2),
-            }
+                confidence=1.0,
+                description="Image contains a limited range of intensity values.",
+            )
         )
 
     # Very low saturation can be useful to flag in daylight colour imagery,
     # but only when the scene otherwise has sufficient brightness.
     if saturation < 15 and brightness > 80 and colorfulness < 15:
         issues.append(
-            {
-                "type": "low_color_information",
-                "severity": "LOW",
-                "confidence": 1.0,
-                "title": "Low colour information",
-                "message": (
-                    "Colour information is limited. This may indicate a "
-                    "desaturated source, grayscale camera mode, or processing artifact."
+            build_issue(
+                issue_type="low_color_information",
+                severity=SEVERITY_LOW,
+                metric="saturation",
+                value=saturation,
+                threshold=15.0,
+                impact=(
+                    "Limited colour information may reduce the usefulness of "
+                    "colour-based downstream analytics."
                 ),
-                "feature": "saturation",
-                "value": round(saturation, 2),
-            }
+                confidence=0.8,
+                description=(
+                    "The image is significantly desaturated."
+                ),
+            )
         )
 
     return issues
