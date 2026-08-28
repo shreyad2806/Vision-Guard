@@ -78,6 +78,9 @@ def run_analysis(db: Session, filename: str, image_path: str, context: str = DEF
     record.context = result.get("context", DEFAULT_CONTEXT)
     record.context_impacts_json = json.dumps(result.get("context_impacts", []))
 
+    # Store Phase 6 explainability fields
+    record.issue_explanations_json = json.dumps(result.get("issue_explanations", []))
+
     db.add(record)
     db.commit()
     db.refresh(record)

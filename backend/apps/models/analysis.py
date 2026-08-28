@@ -34,6 +34,7 @@ class AnalysisRecord(Base):
     analytics_readiness_details_json: Mapped[str] = mapped_column(Text, default="{}")
     context: Mapped[str] = mapped_column(String(50), default="CCTV Surveillance")
     context_impacts_json: Mapped[str] = mapped_column(Text, default="[]")
+    issue_explanations_json: Mapped[str] = mapped_column(Text, default="[]")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
@@ -90,6 +91,14 @@ class AnalysisRecord(Base):
     def context_impacts(self, value: list[dict]) -> None:
         self.context_impacts_json = json.dumps(value)
 
+    @property
+    def issue_explanations(self) -> list[dict]:
+        return json.loads(self.issue_explanations_json)
+
+    @issue_explanations.setter
+    def issue_explanations(self, value: list[dict]) -> None:
+        self.issue_explanations_json = json.dumps(value)
+
     def to_dict(self) -> dict:
         """Serialise to the shape expected by the API response."""
         return {
@@ -113,4 +122,5 @@ class AnalysisRecord(Base):
             "analytics_readiness_details": self.analytics_readiness_details,
             "context": self.context,
             "context_impacts": self.context_impacts,
+            "issue_explanations": self.issue_explanations,
         }

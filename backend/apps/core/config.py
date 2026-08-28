@@ -8,7 +8,8 @@ class Settings(BaseSettings):
     """Central configuration — all values come from env vars or .env file."""
 
     # Database
-    database_url: str = "sqlite:///./data/visionguard_v2.db"
+    _BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
+    database_url: str = f"sqlite:///{_BACKEND_DIR / 'data' / 'visionguard_v2.db'}"
 
     # Uploads
     upload_dir: str = str(Path(__file__).resolve().parent.parent.parent / "data" / "uploads")

@@ -31,6 +31,7 @@ from apps.ml.issue_detector import detect_issues
 
 from apps.ml.readiness import calculate_analytics_readiness
 from apps.ml.context_definitions import get_context_impacts
+from apps.ml.explainability import generate_issue_explanations
 
 
 # ---------------------------------------------------------------------------
@@ -178,6 +179,9 @@ def predict_quality(
     # --- Step 6: Context-specific impacts ---
     context_impacts = get_context_impacts(issues, context)
 
+    # --- Step 7: Issue-driven explainability (Phase 6) ---
+    issue_explanations = generate_issue_explanations(issues)
+
     elapsed_ms = int((time.perf_counter() - start) * 1000)
 
     return {
@@ -198,6 +202,7 @@ def predict_quality(
         "analytics_readiness_details": readiness,
         "context": context,
         "context_impacts": context_impacts,
+        "issue_explanations": issue_explanations,
     }
 
 

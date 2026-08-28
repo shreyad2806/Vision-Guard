@@ -145,6 +145,48 @@ class ContextImpact(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Issue explainability (Phase 6)
+# ---------------------------------------------------------------------------
+
+class IssueEvidence(BaseModel):
+    """Quantitative evidence backing a detected issue."""
+
+    metric: str = Field(
+        ...,
+        description="Feature or measurement used to detect the issue.",
+    )
+    value: float = Field(
+        ...,
+        description="Measured metric value from the image.",
+    )
+    threshold: float = Field(
+        ...,
+        description="Detection threshold that was exceeded.",
+    )
+
+
+class IssueExplanation(BaseModel):
+    """Structured, issue-driven explainability entry (Phase 6)."""
+
+    issue: str = Field(
+        ...,
+        description="Human-readable issue label.",
+    )
+    evidence: IssueEvidence = Field(
+        ...,
+        description="Quantitative evidence from the detector.",
+    )
+    why_it_matters: str = Field(
+        ...,
+        description="Smart-city / downstream-analytics impact.",
+    )
+    recommendation: str = Field(
+        ...,
+        description="Actionable remediation advice.",
+    )
+
+
+# ---------------------------------------------------------------------------
 # Analysis response
 # ---------------------------------------------------------------------------
 
@@ -219,6 +261,11 @@ class AnalysisResponse(BaseModel):
     context_impacts: list[ContextImpact] = Field(
         default_factory=list,
         description="Context-specific impact explanations for detected issues.",
+    )
+
+    issue_explanations: list[IssueExplanation] = Field(
+        default_factory=list,
+        description="Structured issue-driven explainability (Phase 6).",
     )
 
 
