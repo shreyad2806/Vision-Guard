@@ -1,0 +1,39 @@
+# Version control
+.git
+.gitignore
+
+# Python artifacts
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.venv
+venv
+env
+
+# Testing
+.pytest_cache
+tests
+conftest.py
+
+# IDE
+.vscode
+.idea
+
+# Environment files (passed via docker-compose environment)
+.env
+.env.*
+
+# Data (mounted as volume)
+data/
+
+# Documentation
+*.md
+LICENSE
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

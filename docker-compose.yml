@@ -1,0 +1,60 @@
+# ---------------------------------------------------------------------------
+# VisionGuard — Docker Compose (Production)
+#
+# Usage:
+#   docker compose up --build
+#   docker compose down
+#
+# Services:
+#   backend  — FastAPI + ML pipeline (port 8000)
+#   frontend — React SPA via nginx (port 80)
+# ---------------------------------------------------------------------------
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: visionguard-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      # config.py computes correct paths from __file__ — override via .env only when needed
+      - MODEL_VERSION=${MODEL_VERSION:-visionguard-iqa-v2.0}
+      - MAX_UPLOAD_SIZE_MB=${MAX_UPLOAD_SIZE_MB:-20}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost,http://localhost:5173,http://localhost:80,http://localhost:3000}
+    volumes:
+      - backend-data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - visionguard
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /
+    container_name: visionguard-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - visionguard
+
+volumes:
+  backend-data:
+    driver: local
+
+networks:
+  visionguard:
+    driver: bridge

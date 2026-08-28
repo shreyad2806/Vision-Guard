@@ -1,0 +1,38 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies (rebuilt in container)
+node_modules
+
+# Build output (rebuilt in container)
+dist
+
+# Testing
+__tests__
+*.test.ts
+*.test.tsx
+src/test
+
+# IDE
+.vscode
+.idea
+
+# Environment files
+.env
+.env.*
+
+# Documentation
+*.md
+LICENSE
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Benchmark data
+../benchmark
+../datasets
