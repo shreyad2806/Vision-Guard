@@ -1,0 +1,160 @@
+{
+  "by_context": {
+    "CCTV Surveillance": {
+      "image_count": 100,
+      "average_quality_score": 48.73,
+      "average_analytics_readiness_score": 45.97,
+      "readiness_status_distribution": {
+        "NOT READY": 23,
+        "LIMITED READINESS": 44,
+        "CRITICAL / REJECT": 10,
+        "READY": 23
+      },
+      "issue_counts": {
+        "overexposure": 14,
+        "insufficient_sharpness": 4
+      }
+    },
+    "Drone Imagery": {
+      "image_count": 200,
+      "average_quality_score": 38.0,
+      "average_analytics_readiness_score": 23.29,
+      "readiness_status_distribution": {
+        "NOT READY": 200
+      },
+      "issue_counts": {
+        "overexposure": 200
+      }
+    },
+    "Infrastructure Inspection": {
+      "image_count": 100,
+      "average_quality_score": 48.34,
+      "average_analytics_readiness_score": 28.53,
+      "readiness_status_distribution": {
+        "LIMITED READINESS": 13,
+        "NOT READY": 53,
+        "CRITICAL / REJECT": 33,
+        "READY": 1
+      },
+      "issue_counts": {
+        "image_noise": 72,
+        "overexposure": 19,
+        "low_color_information": 17,
+        "low_contrast": 2
+      }
+    },
+    "Low-Light Evaluation": {
+      "image_count": 100,
+      "average_quality_score": 25.61,
+      "average_analytics_readiness_score": 0.59,
+      "readiness_status_distribution": {
+        "CRITICAL / REJECT": 100
+      },
+      "issue_counts": {
+        "insufficient_sharpness": 71,
+        "underexposure": 100,
+        "severe_visual_degradation": 84,
+        "visual_degradation": 2,
+        "limited_dynamic_range": 1,
+        "low_contrast": 10
+      }
+    },
+    "Traffic Monitoring": {
+      "image_count": 100,
+      "average_quality_score": 55.61,
+      "average_analytics_readiness_score": 42.28,
+      "readiness_status_distribution": {
+        "LIMITED READINESS": 43,
+        "NOT READY": 32,
+        "CRITICAL / REJECT": 11,
+        "READY": 14
+      },
+      "issue_counts": {
+        "insufficient_sharpness": 8,
+        "underexposure": 48,
+        "overexposure": 8
+      }
+    }
+  },
+  "by_dataset": {
+    "BDD100K": {
+      "image_count": 100,
+      "average_quality_score": 55.61,
+      "average_analytics_readiness_score": 42.28,
+      "readiness_status_distribution": {
+        "LIMITED READINESS": 43,
+        "NOT READY": 32,
+        "CRITICAL / REJECT": 11,
+        "READY": 14
+      },
+      "issue_counts": {
+        "insufficient_sharpness": 8,
+        "underexposure": 48,
+        "overexposure": 8
+      }
+    },
+    "LOL": {
+      "image_count": 100,
+      "average_quality_score": 25.61,
+      "average_analytics_readiness_score": 0.59,
+      "readiness_status_distribution": {
+        "CRITICAL / REJECT": 100
+      },
+      "issue_counts": {
+        "insufficient_sharpness": 71,
+        "underexposure": 100,
+        "severe_visual_degradation": 84,
+        "visual_degradation": 2,
+        "limited_dynamic_range": 1,
+        "low_contrast": 10
+      }
+    },
+    "MOT17": {
+      "image_count": 100,
+      "average_quality_score": 48.73,
+      "average_analytics_readiness_score": 45.97,
+      "readiness_status_distribution": {
+        "NOT READY": 23,
+        "LIMITED READINESS": 44,
+        "CRITICAL / REJECT": 10,
+        "READY": 23
+      },
+      "issue_counts": {
+        "overexposure": 14,
+        "insufficient_sharpness": 4
+      }
+    },
+    "RoadDefects-ISeg": {
+      "image_count": 100,
+      "average_quality_score": 48.34,
+      "average_analytics_readiness_score": 28.53,
+      "readiness_status_distribution": {
+        "LIMITED READINESS": 13,
+        "NOT READY": 53,
+        "CRITICAL / REJECT": 33,
+        "READY": 1
+      },
+      "issue_counts": {
+        "image_noise": 72,
+        "overexposure": 19,
+        "low_color_information": 17,
+        "low_contrast": 2
+      }
+    },
+    "VisDrone": {
+      "image_count": 200,
+      "average_quality_score": 38.0,
+      "average_analytics_readiness_score": 23.29,
+      "readiness_status_distribution": {
+        "NOT READY": 200
+      },
+      "issue_counts": {
+        "overexposure": 200
+      }
+    }
+  },
+  "total_images": 600,
+  "processed_images": 600,
+  "skipped_images": 0,
+  "skipped_details": []
+}
