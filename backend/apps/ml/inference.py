@@ -30,6 +30,7 @@ from apps.ml.calibration import (
 from apps.ml.issue_detector import detect_issues
 
 from apps.ml.readiness import calculate_analytics_readiness
+from apps.ml.context_definitions import get_context_impacts
 
 
 # ---------------------------------------------------------------------------
@@ -93,6 +94,7 @@ def _fallback_score(features: dict[str, float]) -> float:
 def predict_quality(
     model_features: dict[str, float],
     all_features: dict[str, float],
+    context: str = "CCTV Surveillance",
 ) -> dict:
     """Run calibrated inference and return the full analysis result.
 
@@ -101,6 +103,7 @@ def predict_quality(
     model_features : dict with the keys matching training order
         (brightness, contrast, sharpness, saturation, edge_density).
     all_features : dict with all 12+ statistics for UI display.
+    context : pipeline context for smart-city analytics.
 
     Returns
     -------
@@ -172,6 +175,9 @@ def predict_quality(
     recommendation = get_quality_recommendation(quality_score)
     summary = get_quality_summary(quality_score, assessment, issues)
 
+    # --- Step 6: Context-specific impacts ---
+    context_impacts = get_context_impacts(issues, context)
+
     elapsed_ms = int((time.perf_counter() - start) * 1000)
 
     return {
@@ -190,6 +196,8 @@ def predict_quality(
         "analytics_readiness_score": readiness["score"],
         "analytics_readiness_status": readiness["status"],
         "analytics_readiness_details": readiness,
+        "context": context,
+        "context_impacts": context_impacts,
     }
 
 

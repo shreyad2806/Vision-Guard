@@ -32,6 +32,8 @@ class AnalysisRecord(Base):
     analytics_readiness_score: Mapped[float] = mapped_column(Float, default=0.0)
     analytics_readiness_status: Mapped[str] = mapped_column(String(50), default="")
     analytics_readiness_details_json: Mapped[str] = mapped_column(Text, default="{}")
+    context: Mapped[str] = mapped_column(String(50), default="CCTV Surveillance")
+    context_impacts_json: Mapped[str] = mapped_column(Text, default="[]")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
@@ -80,6 +82,14 @@ class AnalysisRecord(Base):
     def analytics_readiness_details(self, value: dict) -> None:
         self.analytics_readiness_details_json = json.dumps(value)
 
+    @property
+    def context_impacts(self) -> list[dict]:
+        return json.loads(self.context_impacts_json)
+
+    @context_impacts.setter
+    def context_impacts(self, value: list[dict]) -> None:
+        self.context_impacts_json = json.dumps(value)
+
     def to_dict(self) -> dict:
         """Serialise to the shape expected by the API response."""
         return {
@@ -101,4 +111,6 @@ class AnalysisRecord(Base):
             "analytics_readiness_score": self.analytics_readiness_score,
             "analytics_readiness_status": self.analytics_readiness_status,
             "analytics_readiness_details": self.analytics_readiness_details,
+            "context": self.context,
+            "context_impacts": self.context_impacts,
         }

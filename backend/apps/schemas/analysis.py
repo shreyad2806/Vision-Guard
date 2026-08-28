@@ -121,8 +121,29 @@ class AnalyticsReadinessDetails(BaseModel):
         ...,
         ge=0,
     )
-    
-    
+
+
+# ---------------------------------------------------------------------------
+# Context impact
+# ---------------------------------------------------------------------------
+
+class ContextImpact(BaseModel):
+    """Context-specific impact explanation for a detected issue."""
+
+    issue_type: str = Field(
+        ...,
+        description="Detected issue category this impact relates to.",
+    )
+    context: str = Field(
+        ...,
+        description="Pipeline context this impact was generated for.",
+    )
+    impact: str = Field(
+        ...,
+        description="Context-specific impact description.",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Analysis response
 # ---------------------------------------------------------------------------
@@ -189,6 +210,16 @@ class AnalysisResponse(BaseModel):
     )
 
     analytics_readiness_details: AnalyticsReadinessDetails
+
+    context: str = Field(
+        default="CCTV Surveillance",
+        description="Pipeline context used for this analysis.",
+    )
+
+    context_impacts: list[ContextImpact] = Field(
+        default_factory=list,
+        description="Context-specific impact explanations for detected issues.",
+    )
 
 
 # ---------------------------------------------------------------------------

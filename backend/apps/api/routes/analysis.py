@@ -18,6 +18,7 @@ from apps.services.image_service import (
     validate_size,
 )
 from apps.services.analysis_service import run_analysis
+from apps.ml.context_definitions import SUPPORTED_CONTEXTS, DEFAULT_CONTEXT
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,10 @@ def _record_to_response(record: AnalysisRecord) -> dict:
 )
 async def analyze_image(
     file: UploadFile = File(..., description="Image file to analyse"),
+    context: str = Query(
+        DEFAULT_CONTEXT,
+        description=f"Pipeline context. Supported: {', '.join(SUPPORTED_CONTEXTS)}",
+    ),
     db: Session = Depends(get_db),
 ):
     # --- Validate file extension ---
@@ -70,9 +75,17 @@ async def analyze_image(
         logger.exception("Failed to save upload")
         raise HTTPException(status_code=500, detail="Failed to store uploaded file.")
 
+    # --- Validate context ---
+    if context not in SUPPORTED_CONTEXTS:
+        allowed = ", ".join(SUPPORTED_CONTEXTS)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported context. Allowed values: {allowed}",
+        )
+
     # --- Run analysis ---
     try:
-        result = run_analysis(db, filename, image_path)
+        result = run_analysis(db, filename, image_path, context=context)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception:

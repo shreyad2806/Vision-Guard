@@ -17,6 +17,12 @@ _PHASE3_COLUMNS = [
     ("analytics_readiness_details_json", "TEXT NOT NULL DEFAULT '{}'"),
 ]
 
+# Columns added in Phase 4 (Smart-City Context)
+_PHASE4_COLUMNS = [
+    ("context", "VARCHAR(50) NOT NULL DEFAULT 'CCTV Surveillance'"),
+    ("context_impacts_json", "TEXT NOT NULL DEFAULT '[]'"),
+]
+
 _DEFAULT_DETAILS = json.dumps({
     "base_quality_score": 0.0,
     "blur_penalty": 0.0,
@@ -28,14 +34,15 @@ _DEFAULT_DETAILS = json.dumps({
 
 
 def _add_missing_columns() -> None:
-    """Add any Phase 3 columns that are missing from an existing table."""
+    """Add any Phase 3 / Phase 4 columns that are missing from an existing table."""
     inspector = inspect(engine)
     if not inspector.has_table("analyses"):
         return
 
     existing = {col["name"] for col in inspector.get_columns("analyses")}
+    all_columns = _PHASE3_COLUMNS + _PHASE4_COLUMNS
     with engine.begin() as conn:
-        for col_name, col_type in _PHASE3_COLUMNS:
+        for col_name, col_type in all_columns:
             if col_name not in existing:
                 ddl = f"ALTER TABLE analyses ADD COLUMN {col_name} {col_type}"
                 logger.info("Running migration: %s", ddl)

@@ -17,9 +17,10 @@ from apps.core.config import settings
 from apps.models.analysis import AnalysisRecord
 from apps.ml.feature_extractor import extract_model_features, extract_all_features
 from apps.ml.inference import predict_quality
+from apps.ml.context_definitions import DEFAULT_CONTEXT
 
 
-def run_analysis(db: Session, filename: str, image_path: str) -> dict:
+def run_analysis(db: Session, filename: str, image_path: str, context: str = DEFAULT_CONTEXT) -> dict:
     """Execute the full analysis pipeline and persist the result.
 
     Returns the serialised analysis dict ready for the API response.
@@ -35,7 +36,7 @@ def run_analysis(db: Session, filename: str, image_path: str) -> dict:
     all_features = extract_all_features(img)
 
     # 3. Run calibrated inference (model prediction + calibration + issue detection)
-    result = predict_quality(model_features, all_features)
+    result = predict_quality(model_features, all_features, context=context)
 
     # 4. Build image URL from stored filename
     stored_name = Path(image_path).name
@@ -72,6 +73,10 @@ def run_analysis(db: Session, filename: str, image_path: str) -> dict:
     record.analytics_readiness_score = result.get("analytics_readiness_score", 0.0)
     record.analytics_readiness_status = result.get("analytics_readiness_status", "")
     record.analytics_readiness_details_json = json.dumps(result.get("analytics_readiness_details", {}))
+
+    # Store Phase 4 context fields
+    record.context = result.get("context", DEFAULT_CONTEXT)
+    record.context_impacts_json = json.dumps(result.get("context_impacts", []))
 
     db.add(record)
     db.commit()
