@@ -1,93 +1,219 @@
-"""Pydantic schemas for API request and response bodies."""
+"""Pydantic schemas for VisionGuard analysis API."""
 
 from __future__ import annotations
 
+from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 
-class QualityLabel(str, Enum):
-    Excellent = "Excellent"
-    Good = "Good"
-    Fair = "Fair"
-    Poor = "Poor"
-    Critical = "Critical"
-
+# ---------------------------------------------------------------------------
+# Issue severity
+# ---------------------------------------------------------------------------
 
 class Severity(str, Enum):
-    low = "low"
-    moderate = "moderate"
-    high = "high"
-    critical = "critical"
+    """Normalized severity levels returned by the quality detection pipeline."""
 
+    LOW = "low"
+    MODERATE = "moderate"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+# ---------------------------------------------------------------------------
+# Detected issue
+# ---------------------------------------------------------------------------
 
 class Issue(BaseModel):
-    type: str = Field(..., description="Detected issue type, e.g. 'low_brightness'")
-    severity: Severity = Field(..., description="low, moderate, high, or critical")
-    metric: str = Field(..., description="The feature name or metric key")
-    value: float = Field(..., description="The observed value of the metric")
-    threshold: float = Field(..., description="The warning/critical threshold value")
-    impact: str = Field(..., description="The impact description")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score 0-1")
-    description: str | None = Field(default=None, description="Detailed description of the issue")
-    explanation: str | None = Field(default=None, description="Human-readable explanation")
+    """Structured, explainable image-quality issue."""
 
+    type: str = Field(
+        ...,
+        description="Detected issue category.",
+    )
+
+    severity: Severity = Field(
+        ...,
+        description=(
+            "Normalized issue severity: "
+            "low, moderate, high, or critical."
+        ),
+    )
+
+    metric: str = Field(
+        ...,
+        description="Feature or measurement used to detect the issue.",
+    )
+
+    value: float = Field(
+        ...,
+        description="Measured metric value.",
+    )
+
+    threshold: float = Field(
+        ...,
+        description="Detection threshold for the metric.",
+    )
+
+    impact: str = Field(
+        ...,
+        description=(
+            "Expected impact on downstream "
+            "smart-city analytics."
+        ),
+    )
+
+    confidence: float = Field(
+        default=1.0,
+        ge=0,
+        le=1,
+        description="Confidence in the issue detection.",
+    )
+
+    description: str | None = Field(
+        default=None,
+        description="Optional human-readable explanation.",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Quality assessment
+# ---------------------------------------------------------------------------
 
 class QualityAssessment(BaseModel):
-    label: str = Field(..., description="Quality label: Excellent, Good, Fair, Poor, Critical")
-    status: str = Field(..., description="Lowercase status string")
+    """Human-readable quality classification."""
 
+    label: str
+    status: str
 
-class ImageStatistics(BaseModel):
-    # Core metrics (displayed in UI)
-    sharpness: float = Field(..., description="Variance of Laplacian")
-    brightness: float = Field(..., description="Mean grayscale intensity")
-    contrast: float = Field(..., description="Grayscale standard deviation")
-    noise_estimate: float = Field(..., description="Estimated noise level")
-    entropy: float = Field(..., description="Grayscale Shannon entropy")
-    saturation: float = Field(..., description="Mean HSV saturation")
-    # Extended ML features
-    underexposure_pct: float = Field(default=0.0, description="Percentage of very dark pixels")
-    overexposure_pct: float = Field(default=0.0, description="Percentage of very bright pixels")
-    edge_density: float = Field(default=0.0, description="Canny edge pixel percentage")
-    dynamic_range: float = Field(default=0.0, description="Intensity range (p95 - p5)")
-    colorfulness: float = Field(default=0.0, description="Color diversity metric")
-    texture_complexity: float = Field(default=0.0, description="High-frequency energy ratio")
+class AnalyticsReadinessDetails(BaseModel):
+    """Explainable breakdown of analytics readiness scoring."""
 
+    base_quality_score: float = Field(
+        ...,
+        ge=0,
+        le=100,
+    )
+
+    blur_penalty: float = Field(
+        ...,
+        ge=0,
+    )
+
+    exposure_penalty: float = Field(
+        ...,
+        ge=0,
+    )
+
+    noise_penalty: float = Field(
+        ...,
+        ge=0,
+    )
+
+    corruption_penalty: float = Field(
+        ...,
+        ge=0,
+    )
+
+    information_penalty: float = Field(
+        ...,
+        ge=0,
+    )
+    
+    
+# ---------------------------------------------------------------------------
+# Analysis response
+# ---------------------------------------------------------------------------
 
 class AnalysisResponse(BaseModel):
-    analysis_id: str
-    filename: str
-    image_url: str = Field(default="", description="Relative URL to access the uploaded image")
-    quality_score: int = Field(..., ge=0, le=100)
-    quality_label: str = Field(
-        ...,
-        description="Quality label: Excellent, Good, Fair, Poor, Critical",
-    )
-    quality_assessment: QualityAssessment = Field(
-        default_factory=lambda: QualityAssessment(label="Fair", status="fair"),
-        description="Structured quality assessment with label and status",
-    )
-    analysis_confidence: float = Field(
-        ..., ge=0.0, le=100.0, description="Overall confidence in the assessment"
-    )
-    raw_prediction: float | None = Field(
-        default=None, description="Raw DMOS prediction from the model"
-    )
-    issues: list[Issue]
-    statistics: ImageStatistics
-    explanations: list[str] = Field(
-        default_factory=list, description="Per-feature explanations"
-    )
-    summary: str
-    recommendation: str = Field(default="", description="Recommended action")
-    created_at: str = Field(..., description="ISO 8601 datetime string")
-    processing_time_ms: int = Field(..., description="Processing time in milliseconds")
-    model_version: str = Field(default="visionguard-iqa-v1.1", description="ML model version identifier")
+    """Complete response returned by VisionGuard image analysis."""
 
+    analysis_id: str
+
+    filename: str
+    image_path: str | None = None
+    image_url: str | None = None
+
+    quality_score: float = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Overall visual quality score from 0 to 100.",
+    )
+
+    quality_label: str
+
+    analysis_confidence: float = Field(
+        ...,
+        ge=0,
+        le=100,
+    )
+
+    issues: list[Issue] = Field(
+        default_factory=list,
+    )
+
+    statistics: dict[str, Any] = Field(
+        default_factory=dict,
+    )
+
+    summary: str
+    recommendation: str
+
+    created_at: datetime
+
+    processing_time_ms: int
+
+    model_version: str
+
+    explanations: list[Any] = Field(
+        default_factory=list,
+    )
+
+    quality_assessment: dict[str, Any] | None = None
+
+    raw_prediction: float | None = None
+    
+    analytics_readiness_score: float = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Suitability of the image for downstream smart-city computer vision analytics.",
+    )
+
+    analytics_readiness_status: str = Field(
+        ...,
+        description="HIGHLY READY, READY, LIMITED READINESS, NOT READY, or CRITICAL / REJECT.",
+    )
+
+    analytics_readiness_details: AnalyticsReadinessDetails
+
+
+# ---------------------------------------------------------------------------
+# Health response
+# ---------------------------------------------------------------------------
 
 class HealthResponse(BaseModel):
-    status: str
-    model_loaded: bool
-    version: str = Field(default="1.0.0")
+    """Backend health and model availability response."""
+
+    status: str = Field(
+        ...,
+        description="Backend service health status.",
+    )
+
+    model_loaded: bool = Field(
+        ...,
+        description=(
+            "Whether the ML quality model "
+            "is loaded and ready."
+        ),
+    )
+
+    version: str = Field(
+        ...,
+        description=(
+            "VisionGuard backend or model version."
+        ),
+    )

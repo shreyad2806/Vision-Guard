@@ -29,6 +29,9 @@ class AnalysisRecord(Base):
     quality_assessment_json: Mapped[str] = mapped_column(
         Text, default='{"label":"Fair","status":"fair"}'
     )
+    analytics_readiness_score: Mapped[float] = mapped_column(Float, default=0.0)
+    analytics_readiness_status: Mapped[str] = mapped_column(String(50), default="")
+    analytics_readiness_details_json: Mapped[str] = mapped_column(Text, default="{}")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
@@ -69,6 +72,14 @@ class AnalysisRecord(Base):
     def quality_assessment(self, value: dict) -> None:
         self.quality_assessment_json = json.dumps(value)
 
+    @property
+    def analytics_readiness_details(self) -> dict:
+        return json.loads(self.analytics_readiness_details_json)
+
+    @analytics_readiness_details.setter
+    def analytics_readiness_details(self, value: dict) -> None:
+        self.analytics_readiness_details_json = json.dumps(value)
+
     def to_dict(self) -> dict:
         """Serialise to the shape expected by the API response."""
         return {
@@ -87,4 +98,7 @@ class AnalysisRecord(Base):
             "created_at": self.created_at.isoformat(),
             "processing_time_ms": self.processing_time_ms,
             "model_version": self.model_version,
+            "analytics_readiness_score": self.analytics_readiness_score,
+            "analytics_readiness_status": self.analytics_readiness_status,
+            "analytics_readiness_details": self.analytics_readiness_details,
         }

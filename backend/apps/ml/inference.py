@@ -29,6 +29,8 @@ from apps.ml.calibration import (
 )
 from apps.ml.issue_detector import detect_issues
 
+from apps.ml.readiness import calculate_analytics_readiness
+
 
 # ---------------------------------------------------------------------------
 # Confidence estimation via tree variance
@@ -157,6 +159,11 @@ def predict_quality(
     if metadata and "feature_statistics" in metadata:
         feature_stats = {"feature_thresholds": _build_thresholds_from_stats(metadata["feature_statistics"])}
     issues = detect_issues(all_features)
+    
+    readiness = calculate_analytics_readiness(
+        quality_score=quality_score,
+        issues=issues,
+    )
 
     # --- Step 4: Generate explanations ---
     explanations = _generate_explanations(all_features, feature_stats)
@@ -180,6 +187,9 @@ def predict_quality(
         "summary": summary,
         "recommendation": recommendation,
         "processing_time_ms": elapsed_ms,
+        "analytics_readiness_score": readiness["score"],
+        "analytics_readiness_status": readiness["status"],
+        "analytics_readiness_details": readiness,
     }
 
 

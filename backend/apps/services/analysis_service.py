@@ -68,6 +68,11 @@ def run_analysis(db: Session, filename: str, image_path: str) -> dict:
     record.explanations_json = json.dumps(explanations)
     record.quality_assessment_json = json.dumps(quality_assessment)
 
+    # Store Phase 3 analytics readiness fields
+    record.analytics_readiness_score = result.get("analytics_readiness_score", 0.0)
+    record.analytics_readiness_status = result.get("analytics_readiness_status", "")
+    record.analytics_readiness_details_json = json.dumps(result.get("analytics_readiness_details", {}))
+
     db.add(record)
     db.commit()
     db.refresh(record)
