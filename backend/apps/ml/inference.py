@@ -32,6 +32,7 @@ from apps.ml.issue_detector import detect_issues
 from apps.ml.readiness import calculate_analytics_readiness
 from apps.ml.context_definitions import get_context_impacts
 from apps.ml.explainability import generate_issue_explanations
+from apps.ml.downstream_analytics import estimate_downstream_analytics
 
 
 # ---------------------------------------------------------------------------
@@ -184,6 +185,14 @@ def predict_quality(
 
     elapsed_ms = int((time.perf_counter() - start) * 1000)
 
+    # --- Step 8: Downstream analytics impact estimation ---
+    downstream_analytics = estimate_downstream_analytics(
+        quality_score=quality_score,
+        issues=issues,
+        context=context,
+        analytics_readiness_score=readiness["score"],
+    )
+
     return {
         "quality_score": int(round(quality_score)),
         "quality_label": assessment["label"],
@@ -203,6 +212,7 @@ def predict_quality(
         "context": context,
         "context_impacts": context_impacts,
         "issue_explanations": issue_explanations,
+        "downstream_analytics": downstream_analytics,
     }
 
 

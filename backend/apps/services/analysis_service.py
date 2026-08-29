@@ -81,6 +81,9 @@ def run_analysis(db: Session, filename: str, image_path: str, context: str = DEF
     # Store Phase 6 explainability fields
     record.issue_explanations_json = json.dumps(result.get("issue_explanations", []))
 
+    # Store downstream analytics fields
+    record.downstream_analytics_json = json.dumps(result.get("downstream_analytics", []))
+
     db.add(record)
     db.commit()
     db.refresh(record)
@@ -88,4 +91,5 @@ def run_analysis(db: Session, filename: str, image_path: str, context: str = DEF
     # Build response dict
     response = record.to_dict()
     response["raw_prediction"] = result.get("raw_prediction")
+    response["downstream_analytics"] = result.get("downstream_analytics", [])
     return response

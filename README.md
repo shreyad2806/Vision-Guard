@@ -82,3 +82,54 @@ VisionGuard was evaluated under controlled visual conditions to verify that the 
 | Severe Degradation | 13.7 | 0.0 | CRITICAL / REJECT | Underexposure |
 
 These controlled tests demonstrate that changes in image quality produce corresponding changes in detected issues, quality assessment, and downstream analytics readiness. Quality scores range from 13.7 (degraded) to 66.7 (overexposed), and readiness scores range from 0.0 (critical) to 45.8 (limited).
+
+## Downstream Analytics Simulation
+
+VisionGuard estimates how detected image-quality problems may affect downstream computer-vision analytics. This provides an **estimated downstream reliability** assessment — not measured downstream model accuracy.
+
+### How It Works
+
+```
+Image
+  ↓
+Feature Extraction
+  ↓
+Quality Assessment
+  ↓
+Issue Detection
+  ↓
+Analytics Readiness
+  ↓
+Estimated Downstream Reliability
+```
+
+### Supported Analytics
+
+| Analytics | Description |
+|---|---|
+| Object Detection | General object detection and classification |
+| Vehicle Detection | Vehicle identification and tracking |
+| Person Detection | Pedestrian and person detection |
+| OCR / License Plate | Optical character recognition and license plate reading |
+| Infrastructure / Defect Detection | Structural defect and damage detection |
+
+### Example Result
+
+| Analytics | Estimated Reliability | Reason |
+|---|---|---|
+| Object Detection | HIGH | No major quality issues detected |
+| Vehicle Detection | MEDIUM | Underexposure may reduce visibility |
+| Person Detection | MEDIUM | Low-light conditions affect detection |
+| OCR / License Plate | LOW | Blur and noise degrade text recognition |
+
+### Context Awareness
+
+The system tailors analytics to the selected pipeline context:
+
+- **CCTV Surveillance:** Object, Vehicle, Person, OCR detection
+- **Traffic Monitoring:** Vehicle, Object, OCR detection
+- **Infrastructure Inspection:** Infrastructure/Defect, Object detection
+- **Drone Imagery:** Object, Vehicle, Person detection
+- **Smart Campus:** Object, Vehicle, Person, OCR detection
+
+**Important:** These are estimated reliability assessments derived from VisionGuard's image-quality analysis. They are not measured downstream model accuracies. No downstream models (YOLO, OCR, etc.) are actually executed or evaluated.

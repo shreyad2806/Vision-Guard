@@ -28,6 +28,11 @@ _PHASE6_COLUMNS = [
     ("issue_explanations_json", "TEXT NOT NULL DEFAULT '[]'"),
 ]
 
+# Columns added for Downstream Analytics
+_DOWNSTREAM_COLUMNS = [
+    ("downstream_analytics_json", "TEXT NOT NULL DEFAULT '[]'"),
+]
+
 _DEFAULT_DETAILS = json.dumps({
     "base_quality_score": 0.0,
     "blur_penalty": 0.0,
@@ -45,7 +50,7 @@ def _add_missing_columns() -> None:
         return
 
     existing = {col["name"] for col in inspector.get_columns("analyses")}
-    all_columns = _PHASE3_COLUMNS + _PHASE4_COLUMNS + _PHASE6_COLUMNS
+    all_columns = _PHASE3_COLUMNS + _PHASE4_COLUMNS + _PHASE6_COLUMNS + _DOWNSTREAM_COLUMNS
     with engine.begin() as conn:
         for col_name, col_type in all_columns:
             if col_name not in existing:

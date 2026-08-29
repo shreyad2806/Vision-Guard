@@ -711,3 +711,154 @@ class TestControlledConditions:
         assert "clean" in content.lower(), "Report should mention clean condition"
         assert "blur" in content.lower(), "Report should mention blur condition"
         assert "overexposure" in content.lower() or "overexposed" in content.lower(), "Report should mention overexposure"
+
+
+# ------------------------------------------------------------------
+# Downstream Analytics tests
+# ------------------------------------------------------------------
+class TestDownstreamAnalytics:
+    """Verify downstream analytics estimation works correctly."""
+
+    def test_downstream_analytics_in_inference(self):
+        """predict_quality should return downstream_analytics."""
+        from apps.ml.inference import predict_quality
+        from apps.ml.feature_extractor import extract_model_features, extract_all_features
+        import cv2
+        import numpy as np
+
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+        img[:] = [128, 128, 128]
+        model_feats = extract_model_features(img)
+        all_feats = extract_all_features(img)
+        result = predict_quality(model_feats, all_feats, context="CCTV Surveillance")
+        assert "downstream_analytics" in result
+        assert isinstance(result["downstream_analytics"], list)
+        assert len(result["downstream_analytics"]) > 0
+
+    def test_downstream_analytics_has_required_fields(self):
+        """Each downstream analytics entry should have required fields."""
+        from apps.ml.inference import predict_quality
+        from apps.ml.feature_extractor import extract_model_features, extract_all_features
+        import cv2
+        import numpy as np
+
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+        img[:] = [128, 128, 128]
+        model_feats = extract_model_features(img)
+        all_feats = extract_all_features(img)
+        result = predict_quality(model_feats, all_feats, context="CCTV Surveillance")
+        for item in result["downstream_analytics"]:
+            assert "analytics_type" in item
+            assert "analytics_key" in item
+            assert "estimated_reliability" in item
+            assert "primary_reason" in item
+            assert "expected_impact" in item
+            assert "supporting_issues" in item
+            assert "disclaimer" in item
+
+    def test_reliability_is_valid_level(self):
+        """Reliability should be one of HIGH, MEDIUM, LOW, VERY LOW."""
+        from apps.ml.inference import predict_quality
+        from apps.ml.feature_extractor import extract_model_features, extract_all_features
+        import cv2
+        import numpy as np
+
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+        img[:] = [128, 128, 128]
+        model_feats = extract_model_features(img)
+        all_feats = extract_all_features(img)
+        result = predict_quality(model_feats, all_feats, context="CCTV Surveillance")
+        valid_levels = {"HIGH", "MEDIUM", "LOW", "VERY LOW"}
+        for item in result["downstream_analytics"]:
+            assert item["estimated_reliability"] in valid_levels, (
+                f"Invalid reliability: {item['estimated_reliability']}"
+            )
+
+    def test_disclaimer_mentions_not_accuracy(self):
+        """Disclaimer should clearly state this is not measured accuracy."""
+        from apps.ml.inference import predict_quality
+        from apps.ml.feature_extractor import extract_model_features, extract_all_features
+        import cv2
+        import numpy as np
+
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+        img[:] = [128, 128, 128]
+        model_feats = extract_model_features(img)
+        all_feats = extract_all_features(img)
+        result = predict_quality(model_feats, all_feats, context="CCTV Surveillance")
+        for item in result["downstream_analytics"]:
+            assert "not measured" in item["disclaimer"].lower() or "not accuracy" in item["disclaimer"].lower(), (
+                f"Disclaimer should mention not measured accuracy: {item['disclaimer']}"
+            )
+
+    def test_context_affects_analytics_categories(self):
+        """Different contexts should return different analytics categories."""
+        from apps.ml.inference import predict_quality
+        from apps.ml.feature_extractor import extract_model_features, extract_all_features
+        import cv2
+        import numpy as np
+
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+        img[:] = [128, 128, 128]
+        model_feats = extract_model_features(img)
+        all_feats = extract_all_features(img)
+
+        # CCTV should have person detection
+        result_cctv = predict_quality(model_feats, all_feats, context="CCTV Surveillance")
+        cctv_keys = {item["analytics_key"] for item in result_cctv["downstream_analytics"]}
+        assert "person_detection" in cctv_keys
+
+        # Infrastructure should have defect detection
+        result_infra = predict_quality(model_feats, all_feats, context="Infrastructure Inspection")
+        infra_keys = {item["analytics_key"] for item in result_infra["downstream_analytics"]}
+        assert "infrastructure_defect" in infra_keys
+        assert "person_detection" not in infra_keys
+
+    def test_degraded_quality_reduces_reliability(self):
+        """Degraded images should have lower reliability than clean images."""
+        from apps.ml.inference import predict_quality
+        from apps.ml.feature_extractor import extract_model_features, extract_all_features
+        import cv2
+        import numpy as np
+
+        # Clean image
+        img_clean = np.zeros((100, 100, 3), dtype=np.uint8)
+        img_clean[:] = [128, 128, 128]
+        model_feats_clean = extract_model_features(img_clean)
+        all_feats_clean = extract_all_features(img_clean)
+        result_clean = predict_quality(model_feats_clean, all_feats_clean, context="CCTV Surveillance")
+
+        # Degraded image (very dark)
+        img_dark = np.zeros((100, 100, 3), dtype=np.uint8)
+        img_dark[:] = [10, 10, 10]
+        model_feats_dark = extract_model_features(img_dark)
+        all_feats_dark = extract_all_features(img_dark)
+        result_dark = predict_quality(model_feats_dark, all_feats_dark, context="CCTV Surveillance")
+
+        # Count HIGH reliability for clean vs dark
+        clean_high = sum(1 for a in result_clean["downstream_analytics"] if a["estimated_reliability"] == "HIGH")
+        dark_high = sum(1 for a in result_dark["downstream_analytics"] if a["estimated_reliability"] == "HIGH")
+        assert dark_high <= clean_high, (
+            f"Dark image should have fewer HIGH reliability: clean={clean_high}, dark={dark_high}"
+        )
+
+    def test_no_fabricated_accuracy_numbers(self):
+        """Downstream analytics should not contain fabricated accuracy percentages."""
+        from apps.ml.inference import predict_quality
+        from apps.ml.feature_extractor import extract_model_features, extract_all_features
+        import cv2
+        import numpy as np
+
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+        img[:] = [128, 128, 128]
+        model_feats = extract_model_features(img)
+        all_feats = extract_all_features(img)
+        result = predict_quality(model_feats, all_feats, context="CCTV Surveillance")
+        for item in result["downstream_analytics"]:
+            # Should not contain percentage accuracy claims
+            assert "%" not in item["primary_reason"], (
+                f"Should not contain percentage: {item['primary_reason']}"
+            )
+            assert "%" not in item["expected_impact"], (
+                f"Should not contain percentage: {item['expected_impact']}"
+            )

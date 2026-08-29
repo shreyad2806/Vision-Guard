@@ -16,6 +16,7 @@ import FeatureInterpretation from "./FeatureInterpretation";
 import AnalyticsReadiness from "./AnalyticsReadiness";
 import ContextImpact from "./ContextImpact";
 import IssueExplanations from "./IssueExplanations";
+import DownstreamAnalytics from "./DownstreamAnalytics";
 
 interface AnalysisResultProps {
   result: AnalysisResultType;
@@ -113,6 +114,13 @@ export default function AnalysisResult({ result }: AnalysisResultProps) {
             context={result.context}
             impacts={result.context_impacts ?? []}
           />
+        </div>
+      )}
+
+      {/* ── Downstream Analytics Impact ── */}
+      {result.downstream_analytics && result.downstream_analytics.length > 0 && (
+        <div className="results-full">
+          <DownstreamAnalytics analytics={result.downstream_analytics} />
         </div>
       )}
 

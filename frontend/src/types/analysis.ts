@@ -101,4 +101,22 @@ export interface AnalysisResult {
 
   /** Phase 6 — issue-driven explainability */
   issue_explanations?: IssueExplanation[];
+
+  /** Downstream analytics impact estimation */
+  downstream_analytics?: DownstreamAnalytics[];
+}
+
+/** Downstream analytics reliability estimate */
+export interface DownstreamAnalytics {
+  analytics_type: string;
+  analytics_key: string;
+  estimated_reliability: "HIGH" | "MEDIUM" | "LOW" | "VERY LOW";
+  primary_reason: string;
+  expected_impact: string;
+  supporting_issues: Array<{
+    issue_type: string;
+    severity: string;
+    relevance: string;
+  }>;
+  disclaimer: string;
 }
