@@ -1,9 +1,23 @@
 """SQLAlchemy database engine and session factory."""
 
+from pathlib import Path
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from apps.core.config import settings
+
+
+def _ensure_sqlite_dir(url: str) -> None:
+    """Create the parent directory for an SQLite database URL if needed."""
+    if url.startswith("sqlite:"):
+        # sqlite:///relative/path.db or sqlite:////absolute/path.db
+        path_part = url.split("sqlite:///", 1)[-1]
+        db_path = Path(path_part)
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+
+
+_ensure_sqlite_dir(settings.database_url)
 
 engine = create_engine(
     settings.database_url,
