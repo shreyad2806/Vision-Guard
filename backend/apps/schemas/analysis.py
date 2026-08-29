@@ -268,6 +268,16 @@ class AnalysisResponse(BaseModel):
         description="Structured issue-driven explainability (Phase 6).",
     )
 
+    downstream_analytics: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Downstream analytics impact estimates.",
+    )
+
+    primary_explanation: dict[str, Any] | None = Field(
+        default=None,
+        description="Advanced primary issue explanation.",
+    )
+
 
 # ---------------------------------------------------------------------------
 # Health response
