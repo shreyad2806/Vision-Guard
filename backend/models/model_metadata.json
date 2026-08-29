@@ -1,6 +1,6 @@
 {
-  "model_type": "RandomForest_tuned",
-  "model_version": "v3.0.0",
+  "model_type": "HistGradientBoosting",
+  "model_version": "v4.0.0",
   "training_datasets": [
     "KADID-10K",
     "KonIQ-10K"
@@ -13,9 +13,21 @@
     "edge_density",
     "noise_estimate",
     "entropy",
-    "colorfulness"
+    "colorfulness",
+    "luminance_p10",
+    "luminance_p90",
+    "dark_pixel_pct",
+    "bright_pixel_pct",
+    "luminance_median",
+    "gradient_magnitude",
+    "dynamic_range",
+    "percentile_range",
+    "noise_to_signal",
+    "channel_std",
+    "hue_entropy",
+    "texture_complexity"
   ],
-  "feature_count": 8,
+  "feature_count": 20,
   "target_scale": "0-100 higher-is-better",
   "split": {
     "method": "stratified_by_quality_bins",
@@ -30,44 +42,34 @@
   "calibration": {
     "method": "IsotonicRegression",
     "fitted_on": "validation_set",
-    "never_fitted_on": "test_set",
-    "y_min": 0.0,
-    "y_max": 100.0,
-    "increasing": true,
-    "pred_min": 5.0787,
-    "pred_max": 90.8094,
-    "pred_mean": 55.761,
-    "pred_std": 16.4985
+    "never_fitted_on": "test_set"
   },
   "metrics": {
-    "note": "Computed on untouched test set. Calibrator fitted on validation data only.",
+    "note": "Computed on untouched test set. Calibrator fitted on validation only.",
     "raw": {
-      "mae": 14.74,
-      "rmse": 18.381,
-      "r2": 0.4542,
-      "spearman": 0.6561
+      "mae": 13.4228,
+      "rmse": 16.9341,
+      "r2": 0.5367,
+      "spearman": 0.7102
     },
     "calibrated": {
-      "mae": 14.5039,
-      "rmse": 18.3824,
-      "r2": 0.4541,
-      "spearman": 0.655
+      "mae": 13.2739,
+      "rmse": 16.9078,
+      "r2": 0.5382,
+      "spearman": 0.7095
     },
-    "mae": 14.5039,
-    "rmse": 18.3824,
-    "r2": 0.4541,
-    "spearman": 0.655
+    "mae": 13.2739,
+    "rmse": 16.9078,
+    "r2": 0.5382,
+    "spearman": 0.7095
   },
   "test_statistics": {
     "sample_count": 2443,
     "target_mean": 55.6669,
     "target_std": 24.8802,
-    "prediction_mean": 55.9112,
-    "prediction_std": 16.8581,
-    "prediction_min": 5.7661,
-    "prediction_max": 91.985,
-    "target_min": 0.0,
-    "target_max": 100.0
+    "prediction_mean": 56.0355,
+    "prediction_min": 7.63,
+    "prediction_max": 83.0075
   },
   "dataset_samples": {
     "kadid": 10125,
@@ -79,123 +81,122 @@
       "min": 2.1896,
       "max": 250.9293,
       "mean": 111.7154,
-      "std": 41.4749,
-      "p5": 35.7286,
-      "p10": 56.4179,
-      "p25": 86.3391,
-      "p50": 113.1503,
-      "p75": 136.6815,
-      "p90": 166.4667,
-      "p95": 181.9676
+      "std": 41.4749
     },
     "contrast": {
       "min": 5.0386,
       "max": 102.0794,
       "mean": 52.6013,
-      "std": 17.6864,
-      "p5": 23.0793,
-      "p10": 29.5862,
-      "p25": 41.6763,
-      "p50": 52.1308,
-      "p75": 62.5049,
-      "p90": 76.7496,
-      "p95": 85.7876
+      "std": 17.6864
     },
     "sharpness": {
       "min": 3.2356,
       "max": 102171.5853,
       "mean": 3925.3812,
-      "std": 6361.0296,
-      "p5": 139.8676,
-      "p10": 285.6542,
-      "p25": 813.976,
-      "p50": 2181.7605,
-      "p75": 4706.8489,
-      "p90": 8359.2559,
-      "p95": 12209.2528
+      "std": 6361.0296
     },
     "saturation": {
       "min": 0.0,
       "max": 255.0,
       "mean": 118.413,
-      "std": 56.5483,
-      "p5": 31.2665,
-      "p10": 49.1681,
-      "p25": 76.4062,
-      "p50": 112.8821,
-      "p75": 156.8001,
-      "p90": 198.7534,
-      "p95": 223.3074
+      "std": 56.5483
     },
     "edge_density": {
       "min": 0.0,
       "max": 0.4137,
       "mean": 0.1272,
-      "std": 0.0811,
-      "p5": 0.0185,
-      "p10": 0.0306,
-      "p25": 0.0628,
-      "p50": 0.1151,
-      "p75": 0.1778,
-      "p90": 0.2447,
-      "p95": 0.2814
+      "std": 0.0811
     },
     "noise_estimate": {
       "min": 0.0,
       "max": 370.65,
       "mean": 21.7696,
-      "std": 25.4193,
-      "p5": 2.9652,
-      "p10": 4.4478,
-      "p25": 5.9304,
-      "p50": 13.3434,
-      "p75": 28.1694,
-      "p90": 50.4084,
-      "p95": 66.717
+      "std": 25.4193
     },
     "entropy": {
       "min": 0.808,
       "max": 7.9799,
       "mean": 6.9686,
-      "std": 0.8337,
-      "p5": 5.3005,
-      "p10": 5.8552,
-      "p25": 6.6572,
-      "p50": 7.2376,
-      "p75": 7.5372,
-      "p90": 7.7134,
-      "p95": 7.7844
+      "std": 0.8337
     },
     "colorfulness": {
       "min": 0.0,
       "max": 174.0258,
       "mean": 55.8691,
-      "std": 27.9002,
-      "p5": 14.3115,
-      "p10": 24.0376,
-      "p25": 36.8564,
-      "p50": 51.7313,
-      "p75": 72.547,
-      "p90": 91.9619,
-      "p95": 104.7083
+      "std": 27.9002
+    },
+    "luminance_p10": {
+      "min": 0.0,
+      "max": 248.0,
+      "mean": 46.5722,
+      "std": 36.976
+    },
+    "luminance_p90": {
+      "min": 0.0,
+      "max": 255.0,
+      "mean": 180.5095,
+      "std": 49.1261
+    },
+    "dark_pixel_pct": {
+      "min": 0.0,
+      "max": 98.8799,
+      "mean": 14.0497,
+      "std": 19.54
+    },
+    "bright_pixel_pct": {
+      "min": 0.0,
+      "max": 98.8819,
+      "mean": 6.4735,
+      "std": 12.2189
+    },
+    "luminance_median": {
+      "min": 0.0,
+      "max": 255.0,
+      "mean": 109.3459,
+      "std": 53.0168
+    },
+    "gradient_magnitude": {
+      "min": 2.7042,
+      "max": 514.8489,
+      "mean": 84.512,
+      "std": 49.8048
+    },
+    "dynamic_range": {
+      "min": 5.0,
+      "max": 255.0,
+      "mean": 162.9379,
+      "std": 51.3181
+    },
+    "percentile_range": {
+      "min": 0.0,
+      "max": 255.0,
+      "mean": 133.9373,
+      "std": 51.927
+    },
+    "noise_to_signal": {
+      "min": 0.0,
+      "max": 3.4528,
+      "mean": 0.2178,
+      "std": 0.2444
+    },
+    "channel_std": {
+      "min": 0.0,
+      "max": 119.7368,
+      "mean": 20.1887,
+      "std": 14.6613
+    },
+    "hue_entropy": {
+      "min": 0.0,
+      "max": 7.4505,
+      "mean": 4.8875,
+      "std": 1.2655
+    },
+    "texture_complexity": {
+      "min": 0.0032,
+      "max": 51.1839,
+      "mean": 2.0278,
+      "std": 2.9474
     }
   },
-  "quality_bins": {
-    "edges": [
-      0,
-      20,
-      40,
-      60,
-      80,
-      100
-    ],
-    "train_distribution": {
-      "0": 1226,
-      "20": 2166,
-      "40": 2404,
-      "60": 3393,
-      "80": 2224
-    }
-  },
-  "created_at": "2026-08-29T11:11:36.749144+00:00"
+  "created_at": "2026-08-29T11:56:46.789278+00:00"
 }

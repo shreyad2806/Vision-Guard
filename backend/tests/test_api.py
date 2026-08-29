@@ -537,14 +537,11 @@ class TestFeatureExtraction:
         features = extract_model_features(image)
 
         expected_keys = {
-            "brightness",
-            "contrast",
-            "sharpness",
-            "saturation",
-            "edge_density",
-            "noise_estimate",
-            "entropy",
-            "colorfulness",
+            "brightness", "contrast", "sharpness", "saturation", "edge_density",
+            "noise_estimate", "entropy", "colorfulness",
+            "luminance_p10", "luminance_p90", "dark_pixel_pct", "bright_pixel_pct",
+            "luminance_median", "gradient_magnitude", "dynamic_range", "percentile_range",
+            "noise_to_signal", "channel_std", "hue_entropy", "texture_complexity",
         }
 
         assert set(features.keys()) == expected_keys

@@ -1,0 +1,225 @@
+{
+  "validation_type": "v3.0_comprehensive_validation",
+  "model_version": "v3.0.0",
+  "model_type": "RandomForestRegressor",
+  "feature_count": 8,
+  "features": [
+    "brightness",
+    "contrast",
+    "sharpness",
+    "saturation",
+    "edge_density",
+    "noise_estimate",
+    "entropy",
+    "colorfulness"
+  ],
+  "random_seed": 42,
+  "leakage_audit": "PASS",
+  "reproducibility": "PASS",
+  "ablation_results": {
+    "A_all_8": {
+      "features": 8,
+      "mae": 14.6832,
+      "rmse": 18.3852,
+      "r2": 0.4422,
+      "spearman": 0.6551
+    },
+    "B_no_sharpness": {
+      "features": 7,
+      "mae": 15.9062,
+      "rmse": 19.629,
+      "r2": 0.3642,
+      "spearman": 0.5936
+    },
+    "C_no_colorfulness": {
+      "features": 7,
+      "mae": 15.1698,
+      "rmse": 18.9243,
+      "r2": 0.4091,
+      "spearman": 0.6262
+    },
+    "D_no_edge_density": {
+      "features": 7,
+      "mae": 14.8837,
+      "rmse": 18.6103,
+      "r2": 0.4285,
+      "spearman": 0.6436
+    },
+    "E_no_exposure": {
+      "features": 6,
+      "mae": 15.2756,
+      "rmse": 19.0552,
+      "r2": 0.4008,
+      "spearman": 0.6183
+    },
+    "F_top_4": {
+      "features": 4,
+      "mae": 16.1094,
+      "rmse": 19.9304,
+      "r2": 0.3445,
+      "spearman": 0.5615
+    }
+  },
+  "robustness_results": [
+    {
+      "condition": "clean",
+      "quality_score": 37.3,
+      "readiness_score": 22.3,
+      "issue_count": 1,
+      "issues": [
+        "underexposure"
+      ],
+      "processing_time_ms": 105.5
+    },
+    {
+      "condition": "blur",
+      "quality_score": 9.0,
+      "readiness_score": 0.0,
+      "issue_count": 3,
+      "issues": [
+        "severe_blur",
+        "visual_degradation",
+        "potential_visual_defect"
+      ],
+      "processing_time_ms": 84.7
+    },
+    {
+      "condition": "mild_blur",
+      "quality_score": 14.1,
+      "readiness_score": 0.0,
+      "issue_count": 2,
+      "issues": [
+        "severe_blur",
+        "underexposure"
+      ],
+      "processing_time_ms": 86.5
+    },
+    {
+      "condition": "underexposed",
+      "quality_score": 13.9,
+      "readiness_score": 0.0,
+      "issue_count": 3,
+      "issues": [
+        "insufficient_sharpness",
+        "underexposure",
+        "severe_visual_degradation"
+      ],
+      "processing_time_ms": 83.8
+    },
+    {
+      "condition": "overexposed",
+      "quality_score": 57.9,
+      "readiness_score": 12.9,
+      "issue_count": 2,
+      "issues": [
+        "overexposure",
+        "potential_visual_defect"
+      ],
+      "processing_time_ms": 60.4
+    },
+    {
+      "condition": "noisy",
+      "quality_score": 37.3,
+      "readiness_score": 0.0,
+      "issue_count": 2,
+      "issues": [
+        "underexposure",
+        "image_noise"
+      ],
+      "processing_time_ms": 59.7
+    },
+    {
+      "condition": "severe_degradation",
+      "quality_score": 13.5,
+      "readiness_score": 0.0,
+      "issue_count": 3,
+      "issues": [
+        "severe_blur",
+        "underexposure",
+        "severe_visual_degradation"
+      ],
+      "processing_time_ms": 62.3
+    },
+    {
+      "condition": "cctv_scene",
+      "quality_score": 32.4,
+      "readiness_score": 0.0,
+      "issue_count": 2,
+      "issues": [
+        "insufficient_sharpness",
+        "severe_visual_degradation"
+      ],
+      "processing_time_ms": 120.9
+    },
+    {
+      "condition": "traffic_scene",
+      "quality_score": 35.1,
+      "readiness_score": 0.0,
+      "issue_count": 2,
+      "issues": [
+        "insufficient_sharpness",
+        "severe_visual_degradation"
+      ],
+      "processing_time_ms": 171.8
+    },
+    {
+      "condition": "drone_scene",
+      "quality_score": 37.3,
+      "readiness_score": 0.0,
+      "issue_count": 2,
+      "issues": [
+        "insufficient_sharpness",
+        "severe_visual_degradation"
+      ],
+      "processing_time_ms": 176.9
+    },
+    {
+      "condition": "infra_scene",
+      "quality_score": 37.3,
+      "readiness_score": 0.0,
+      "issue_count": 2,
+      "issues": [
+        "insufficient_sharpness",
+        "severe_visual_degradation"
+      ],
+      "processing_time_ms": 163.3
+    },
+    {
+      "condition": "lowlight_scene",
+      "quality_score": 13.5,
+      "readiness_score": 0.0,
+      "issue_count": 3,
+      "issues": [
+        "severe_blur",
+        "underexposure",
+        "severe_visual_degradation"
+      ],
+      "processing_time_ms": 161.8
+    }
+  ],
+  "performance": {
+    "feature_extraction": {
+      "mean_ms": 57.79,
+      "median_ms": 57.47,
+      "p95_ms": 71.19
+    },
+    "model_inference": {
+      "mean_ms": 54.2,
+      "median_ms": 50.44,
+      "p95_ms": 64.66
+    },
+    "calibration": {
+      "mean_ms": 0.3,
+      "median_ms": 0.29,
+      "p95_ms": 0.39
+    },
+    "total": {
+      "mean_ms": 112.3,
+      "median_ms": 108.79,
+      "p95_ms": 137.17
+    }
+  },
+  "api_verification": "PASS",
+  "artifact_validation": "PASS",
+  "timestamp": "2026-08-29T11:31:31.401903+00:00"
+}

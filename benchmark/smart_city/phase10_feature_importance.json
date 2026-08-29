@@ -1,45 +1,152 @@
 {
+  "model_version": "v4.0.0",
+  "model": "HistGradientBoostingRegressor",
+  "importance_method": "permutation_importance",
+  "importance_description": "Mean decrease in Spearman correlation when each feature is randomly permuted on the validation set",
+  "importance_on": "validation_set",
+  "n_repeats": 10,
+  "random_seed": 42,
   "features": [
     {
+      "rank": 1,
       "feature": "sharpness",
-      "importance": 0.289214,
-      "rank": 1
+      "importance": 0.952424,
+      "std": 0.028587,
+      "percentage": 41.0
     },
     {
+      "rank": 2,
+      "feature": "gradient_magnitude",
+      "importance": 0.282208,
+      "std": 0.006881,
+      "percentage": 12.2
+    },
+    {
+      "rank": 3,
       "feature": "colorfulness",
-      "importance": 0.157181,
-      "rank": 2
+      "importance": 0.156614,
+      "std": 0.006583,
+      "percentage": 6.7
     },
     {
-      "feature": "edge_density",
-      "importance": 0.112925,
-      "rank": 3
-    },
-    {
-      "feature": "saturation",
-      "importance": 0.103281,
-      "rank": 4
-    },
-    {
-      "feature": "brightness",
-      "importance": 0.094154,
-      "rank": 5
-    },
-    {
-      "feature": "contrast",
-      "importance": 0.082937,
-      "rank": 6
-    },
-    {
+      "rank": 4,
       "feature": "entropy",
-      "importance": 0.081287,
-      "rank": 7
+      "importance": 0.139635,
+      "std": 0.015552,
+      "percentage": 6.0
     },
     {
+      "rank": 5,
+      "feature": "saturation",
+      "importance": 0.091966,
+      "std": 0.005283,
+      "percentage": 4.0
+    },
+    {
+      "rank": 6,
+      "feature": "noise_to_signal",
+      "importance": 0.085256,
+      "std": 0.009841,
+      "percentage": 3.7
+    },
+    {
+      "rank": 7,
+      "feature": "edge_density",
+      "importance": 0.082634,
+      "std": 0.00442,
+      "percentage": 3.6
+    },
+    {
+      "rank": 8,
+      "feature": "hue_entropy",
+      "importance": 0.071837,
+      "std": 0.007502,
+      "percentage": 3.1
+    },
+    {
+      "rank": 9,
+      "feature": "luminance_p10",
+      "importance": 0.068831,
+      "std": 0.005471,
+      "percentage": 3.0
+    },
+    {
+      "rank": 10,
+      "feature": "dark_pixel_pct",
+      "importance": 0.06792,
+      "std": 0.004357,
+      "percentage": 2.9
+    },
+    {
+      "rank": 11,
+      "feature": "channel_std",
+      "importance": 0.057312,
+      "std": 0.005579,
+      "percentage": 2.5
+    },
+    {
+      "rank": 12,
+      "feature": "texture_complexity",
+      "importance": 0.055677,
+      "std": 0.005231,
+      "percentage": 2.4
+    },
+    {
+      "rank": 13,
+      "feature": "dynamic_range",
+      "importance": 0.040301,
+      "std": 0.003981,
+      "percentage": 1.7
+    },
+    {
+      "rank": 14,
+      "feature": "brightness",
+      "importance": 0.036486,
+      "std": 0.002424,
+      "percentage": 1.6
+    },
+    {
+      "rank": 15,
+      "feature": "bright_pixel_pct",
+      "importance": 0.03278,
+      "std": 0.003123,
+      "percentage": 1.4
+    },
+    {
+      "rank": 16,
+      "feature": "contrast",
+      "importance": 0.028627,
+      "std": 0.002749,
+      "percentage": 1.2
+    },
+    {
+      "rank": 17,
+      "feature": "luminance_median",
+      "importance": 0.022039,
+      "std": 0.002465,
+      "percentage": 0.9
+    },
+    {
+      "rank": 18,
       "feature": "noise_estimate",
-      "importance": 0.079022,
-      "rank": 8
+      "importance": 0.020977,
+      "std": 0.002334,
+      "percentage": 0.9
+    },
+    {
+      "rank": 19,
+      "feature": "luminance_p90",
+      "importance": 0.016323,
+      "std": 0.002467,
+      "percentage": 0.7
+    },
+    {
+      "rank": 20,
+      "feature": "percentile_range",
+      "importance": 0.012353,
+      "std": 0.001812,
+      "percentage": 0.5
     }
   ],
-  "method": "tree_feature_importances"
+  "importance_sum": 2.322199147365864
 }

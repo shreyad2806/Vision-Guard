@@ -58,16 +58,17 @@ def feature_names():
 
 
 def _make_features(**overrides):
-    """Return a dict of model features with sensible defaults (8 features)."""
+    """Return a dict of model features with sensible defaults (20 features)."""
     defaults = {
-        "brightness": 128.0,
-        "contrast": 50.0,
-        "sharpness": 200.0,
-        "saturation": 100.0,
-        "edge_density": 0.10,
-        "noise_estimate": 10.0,
-        "entropy": 6.0,
-        "colorfulness": 30.0,
+        "brightness": 128.0, "contrast": 50.0, "sharpness": 200.0,
+        "saturation": 100.0, "edge_density": 0.10,
+        "noise_estimate": 10.0, "entropy": 6.0, "colorfulness": 30.0,
+        "luminance_p10": 50.0, "luminance_p90": 200.0,
+        "dark_pixel_pct": 5.0, "bright_pixel_pct": 2.0,
+        "luminance_median": 120.0, "gradient_magnitude": 30.0,
+        "dynamic_range": 150.0, "percentile_range": 150.0,
+        "noise_to_signal": 0.1, "channel_std": 20.0,
+        "hue_entropy": 5.0, "texture_complexity": 15.0,
     }
     defaults.update(overrides)
     return defaults
@@ -190,49 +191,54 @@ class TestCalibrationLeakageRemoval:
 # ------------------------------------------------------------------
 class TestModelProducesValidOutput:
     def test_model_predicts_numeric(self, model):
-        vector = np.array([[128.0, 50.0, 200.0, 100.0, 0.10, 10.0, 6.0, 30.0]])
+        vector = np.array([[128.0, 50.0, 200.0, 100.0, 0.10, 10.0, 6.0, 30.0,
+                           50.0, 200.0, 5.0, 2.0, 120.0, 30.0, 150.0, 150.0, 0.1, 20.0, 5.0, 15.0]])
         pred = model.predict(vector)
         assert pred.shape == (1,)
         assert np.isfinite(pred[0])
 
     def test_score_in_range_0_100(self, model, calibrator):
-        vector = np.array([[128.0, 50.0, 200.0, 100.0, 0.10, 10.0, 6.0, 30.0]])
+        vector = np.array([[128.0, 50.0, 200.0, 100.0, 0.10, 10.0, 6.0, 30.0,
+                           50.0, 200.0, 5.0, 2.0, 120.0, 30.0, 150.0, 150.0, 0.1, 20.0, 5.0, 15.0]])
         raw = float(model.predict(vector)[0])
         score = apply_calibration(raw, calibrator)
         assert 0 <= score <= 100
 
     def test_raw_prediction_exists(self, model):
-        vector = np.array([[128.0, 50.0, 200.0, 100.0, 0.10, 10.0, 6.0, 30.0]])
+        vector = np.array([[128.0, 50.0, 200.0, 100.0, 0.10, 10.0, 6.0, 30.0,
+                           50.0, 200.0, 5.0, 2.0, 120.0, 30.0, 150.0, 150.0, 0.1, 20.0, 5.0, 15.0]])
         raw = float(model.predict(vector)[0])
         assert raw is not None
         assert isinstance(raw, float)
 
     def test_calibration_changes_raw_prediction(self, model, calibrator):
-        vector = np.array([[128.0, 50.0, 200.0, 100.0, 0.10, 10.0, 6.0, 30.0]])
+        vector = np.array([[128.0, 50.0, 200.0, 100.0, 0.10, 10.0, 6.0, 30.0,
+                           50.0, 200.0, 5.0, 2.0, 120.0, 30.0, 150.0, 150.0, 0.1, 20.0, 5.0, 15.0]])
         raw = float(model.predict(vector)[0])
         calibrated = apply_calibration(raw, calibrator)
-        # Calibrated score should be finite and in range
         assert np.isfinite(calibrated)
         assert 0 <= calibrated <= 100
 
 
 class TestModelOutputChangesWithFeatures:
     def test_good_vs_bad_features_differ(self, model, calibrator):
-        good = np.array([[128.0, 60.0, 500.0, 120.0, 0.15, 5.0, 7.0, 50.0]])
-        bad = np.array([[30.0, 10.0, 5.0, 10.0, 0.01, 40.0, 2.0, 5.0]])
+        good = np.array([[128.0, 60.0, 500.0, 120.0, 0.15, 5.0, 7.0, 50.0,
+                          80.0, 220.0, 2.0, 1.0, 130.0, 40.0, 160.0, 140.0, 0.04, 30.0, 6.0, 20.0]])
+        bad = np.array([[30.0, 10.0, 5.0, 10.0, 0.01, 40.0, 2.0, 5.0,
+                          10.0, 60.0, 30.0, 10.0, 25.0, 5.0, 50.0, 50.0, 2.0, 5.0, 1.0, 2.0]])
         raw_good = float(model.predict(good)[0])
         raw_bad = float(model.predict(bad)[0])
         score_good = apply_calibration(raw_good, calibrator)
         score_bad = apply_calibration(raw_bad, calibrator)
-        # Higher-quality features should produce a higher score
         assert score_good > score_bad
 
     def test_brightness_extremes_differ(self, model, calibrator):
-        bright = np.array([[240.0, 50.0, 200.0, 100.0, 0.10, 10.0, 6.0, 30.0]])
-        dark = np.array([[20.0, 50.0, 200.0, 100.0, 0.10, 10.0, 6.0, 30.0]])
+        base = [240.0, 50.0, 200.0, 100.0, 0.10, 10.0, 6.0, 30.0,
+                200.0, 250.0, 1.0, 5.0, 230.0, 35.0, 50.0, 50.0, 0.05, 25.0, 5.5, 18.0]
+        bright = np.array([base])
+        dark = np.array([[20.0] + base[1:]])
         raw_bright = float(model.predict(bright)[0])
         raw_dark = float(model.predict(dark)[0])
-        # Raw predictions should differ
         assert raw_bright != raw_dark
 
 
@@ -392,7 +398,8 @@ class TestModelNotReloaded:
 # ------------------------------------------------------------------
 class TestInferenceDeterminism:
     def test_same_input_same_output(self, model, calibrator):
-        vector = np.array([[128.0, 50.0, 200.0, 100.0, 0.10, 10.0, 6.0, 30.0]])
+        vector = np.array([[128.0, 50.0, 200.0, 100.0, 0.10, 10.0, 6.0, 30.0,
+                           50.0, 200.0, 5.0, 2.0, 120.0, 30.0, 150.0, 150.0, 0.1, 20.0, 5.0, 15.0]])
         scores = []
         for _ in range(5):
             raw = float(model.predict(vector)[0])
@@ -429,18 +436,16 @@ class TestMetadataValidity:
 
     def test_calibration_metadata_valid(self, metadata):
         cal = metadata["calibration"]
-        assert cal["pred_min"] < cal["pred_max"]
-        assert cal["pred_std"] > 0
         assert cal["fitted_on"] == "validation_set"
 
     def test_feature_names_match(self, metadata, feature_names):
         assert metadata["feature_names"] == feature_names
-        assert len(feature_names) == 8, f"Expected 8 features, got {len(feature_names)}"
+        assert len(feature_names) == 20, f"Expected 20 features, got {len(feature_names)}"
 
-    def test_model_version_is_v3_0(self, metadata):
-        """Model version should be v3.0.0 after the improvement."""
-        assert metadata.get("model_version") == "v3.0.0", (
-            f"Expected model_version v3.0.0, got {metadata.get('model_version')}"
+    def test_model_version_is_v4_0(self, metadata):
+        """Model version should be v4.0.0 after feature engineering."""
+        assert metadata.get("model_version") == "v4.0.0", (
+            f"Expected model_version v4.0.0, got {metadata.get('model_version')}"
         )
 
 
@@ -479,4 +484,81 @@ class TestPerformanceMetadata:
             )
             assert cal.get("never_fitted_on") == "test_set", (
                 "Calibration should explicitly state it was never fitted on test data"
+            )
+
+
+# ------------------------------------------------------------------
+# TASK 8: Feature importance validation
+# ------------------------------------------------------------------
+class TestFeatureImportance:
+    def test_feature_importance_json_exists(self):
+        """Feature importance JSON should exist."""
+        fi_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_feature_importance.json"
+        assert fi_path.exists(), f"Feature importance file not found: {fi_path}"
+
+    def test_feature_importance_has_20_features(self):
+        """Feature importance should cover all 20 features."""
+        fi_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_feature_importance.json"
+        with open(fi_path) as f:
+            data = json.load(f)
+        assert len(data["features"]) == 20, f"Expected 20 features, got {len(data['features'])}"
+
+    def test_feature_importance_order_matches_metadata(self):
+        """Feature importance features should match model metadata feature names."""
+        fi_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_feature_importance.json"
+        with open(fi_path) as f:
+            fi_data = json.load(f)
+        fi_features = {item["feature"] for item in fi_data["features"]}
+        meta_features = set(get_metadata()["feature_names"])
+        assert fi_features == meta_features, (
+            f"Feature importance features {fi_features} != metadata features {meta_features}"
+        )
+
+    def test_importance_values_non_negative(self):
+        """All importance values should be non-negative."""
+        fi_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_feature_importance.json"
+        with open(fi_path) as f:
+            data = json.load(f)
+        for item in data["features"]:
+            assert item["importance"] >= 0, f"Negative importance for {item['feature']}: {item['importance']}"
+
+    def test_importance_ranks_descending(self):
+        """Importance should be sorted in descending order."""
+        fi_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_feature_importance.json"
+        with open(fi_path) as f:
+            data = json.load(f)
+        importances = [item["importance"] for item in data["features"]]
+        ranks = [item["rank"] for item in data["features"]]
+        assert ranks == list(range(1, 21)), "Ranks should be 1-20"
+        for i in range(len(importances) - 1):
+            assert importances[i] >= importances[i + 1], (
+                f"Importances not descending at position {i}: {importances[i]} < {importances[i+1]}"
+            )
+
+    def test_importance_sum_positive(self):
+        """Sum of importances should be a positive number."""
+        fi_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_feature_importance.json"
+        with open(fi_path) as f:
+            data = json.load(f)
+        total = data.get("importance_sum", 0)
+        assert total > 0, f"Importance sum should be positive, got {total}"
+
+    def test_sharpness_is_top_feature(self):
+        """Sharpness should be the most important feature."""
+        fi_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_feature_importance.json"
+        with open(fi_path) as f:
+            data = json.load(f)
+        top_feature = data["features"][0]["feature"]
+        assert top_feature == "sharpness", (
+            f"Expected sharpness as top feature, got {top_feature}"
+        )
+
+    def test_all_features_have_contributions(self):
+        """No feature should have zero importance."""
+        fi_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_feature_importance.json"
+        with open(fi_path) as f:
+            data = json.load(f)
+        for item in data["features"]:
+            assert item["importance"] > 0, (
+                f"Feature {item['feature']} has zero importance"
             )

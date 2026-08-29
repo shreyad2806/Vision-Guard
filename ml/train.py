@@ -53,26 +53,18 @@ from ml.training.dataset_loader import load_kadid, load_koniq, get_quality_bins,
 # Feature extraction (must match backend/apps/ml/feature_extractor.py exactly)
 # ---------------------------------------------------------------------------
 FEATURE_NAMES = [
-    "brightness",
-    "contrast",
-    "sharpness",
-    "saturation",
-    "edge_density",
-    "noise_estimate",
-    "entropy",
-    "colorfulness",
+    "brightness", "contrast", "sharpness", "saturation", "edge_density",
+    "noise_estimate", "entropy", "colorfulness",
+    "luminance_p10", "luminance_p90", "dark_pixel_pct", "bright_pixel_pct",
+    "luminance_median", "gradient_magnitude", "dynamic_range", "percentile_range",
+    "noise_to_signal", "channel_std", "hue_entropy", "texture_complexity",
 ]
 
 
 def extract_features(image_path: str) -> list[float] | None:
-    """Extract the 8 model features from an image path.
+    """Extract the 20 model features from an image path.
 
-    Preprocessing matches the production feature extractor:
-      - Resize to 224x224
-      - Grayscale for brightness, contrast, sharpness, edge_density, noise, entropy
-      - HSV for saturation
-      - BGR for colorfulness
-      - Canny(100, 200) for edge_density
+    Preprocessing matches the production feature extractor exactly.
     """
     img = cv2.imread(image_path)
     if img is None:
@@ -80,34 +72,56 @@ def extract_features(image_path: str) -> list[float] | None:
 
     resized = cv2.resize(img, (224, 224))
     gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+    hsv = cv2.cvtColor(resized, cv2.COLOR_BGR2HSV)
+    b_ch, g_ch, r_ch = cv2.split(resized.astype(float))
 
     brightness = float(np.mean(gray))
     contrast = float(np.std(gray))
     sharpness = float(cv2.Laplacian(gray, cv2.CV_64F).var())
-
-    hsv = cv2.cvtColor(resized, cv2.COLOR_BGR2HSV)
     saturation = float(np.mean(hsv[:, :, 1]))
-
     edges = cv2.Canny(gray, 100, 200)
     edge_density = float(np.mean(edges > 0))
-
     laplacian = cv2.Laplacian(gray, cv2.CV_64F)
     noise_estimate = float(np.median(np.abs(laplacian)) * 1.4826)
-
     hist = cv2.calcHist([gray], [0], None, [256], [0, 256]).flatten()
     hist = hist / hist.sum()
     hist = hist[hist > 0]
     entropy = float(abs(-np.sum(hist * np.log2(hist))))
-
-    b, g, r = cv2.split(resized.astype(float))
-    rg = np.abs(r - g)
-    yb = np.abs(0.5 * (r + g) - b)
-    rg_mean, rg_std = np.mean(rg), np.std(rg)
-    yb_mean, yb_std = np.mean(yb), np.std(yb)
-    colorfulness = float(np.sqrt(rg_std**2 + yb_std**2) + 0.3 * np.sqrt(rg_mean**2 + yb_mean**2))
+    rg = np.abs(r_ch - g_ch)
+    yb = np.abs(0.5 * (r_ch + g_ch) - b_ch)
+    colorfulness = float(np.sqrt(np.std(rg)**2 + np.std(yb)**2) + 0.3 * np.sqrt(np.mean(rg)**2 + np.mean(yb)**2))
+    luminance_p10 = float(np.percentile(gray, 10))
+    luminance_p90 = float(np.percentile(gray, 90))
+    dark_pixel_pct = float(np.mean(gray < 30) * 100)
+    bright_pixel_pct = float(np.mean(gray > 225) * 100)
+    luminance_median = float(np.median(gray))
+    gx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+    gy = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+    gradient_magnitude = float(np.mean(np.sqrt(gx**2 + gy**2)))
+    dynamic_range = float(np.percentile(gray, 95) - np.percentile(gray, 5))
+    percentile_range = float(luminance_p90 - luminance_p10)
+    noise_to_signal = noise_estimate / max(brightness, 1.0)
+    channel_std = float(np.std([np.mean(r_ch), np.mean(g_ch), np.mean(b_ch)]))
+    hue_hist = cv2.calcHist([hsv], [0], None, [180], [0, 180]).flatten()
+    hue_hist = hue_hist / hue_hist.sum()
+    hue_hist = hue_hist[hue_hist > 0]
+    hue_entropy = float(abs(-np.sum(hue_hist * np.log2(hue_hist))))
+    f = np.fft.fft2(gray.astype(float))
+    fshift = np.fft.fftshift(f)
+    h, w = gray.shape
+    cy, cx = h // 2, w // 2
+    Y, X = np.ogrid[:h, :w]
+    radius = min(h, w) * 0.2
+    fft_mask = ((Y - cy)**2 + (X - cx)**2) > radius**2
+    mag = np.abs(fshift)
+    total_energy = np.sum(mag**2)
+    texture_complexity = float(np.sum(mag[fft_mask]**2) / total_energy * 100) if total_energy > 0 else 0.0
 
     return [brightness, contrast, sharpness, saturation, edge_density,
-            noise_estimate, entropy, colorfulness]
+            noise_estimate, entropy, colorfulness, luminance_p10, luminance_p90,
+            dark_pixel_pct, bright_pixel_pct, luminance_median, gradient_magnitude,
+            dynamic_range, percentile_range, noise_to_signal, channel_std,
+            hue_entropy, texture_complexity]
 
 
 # ---------------------------------------------------------------------------

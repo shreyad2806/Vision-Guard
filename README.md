@@ -12,9 +12,9 @@ VisionGuard explicitly detects the following required visual quality issues:
 | Potential Visual Defect | Abnormal feature combination detection |
 | Additional Quality Issues | Contrast, saturation, entropy, dynamic range, structural content |
 
-## Model Evaluation (v2.1 — Leakage-Free)
+## Model Evaluation (v4.0 — Leakage-Free, Feature-Engineered)
 
-The VisionGuard image quality model uses a **RandomForest regressor** trained on 16,300 images from KADID-10K and KonIQ-10K datasets. The calibration (IsotonicRegression) is fitted on a **validation set only** — test data is never used for training or calibration.
+The VisionGuard image quality model uses a **HistGradientBoosting regressor** trained on 16,300 images from KADID-10K and KonIQ-10K datasets. The calibration (IsotonicRegression) is fitted on a **validation set only** — test data is never used for training or calibration.
 
 ### Split
 
@@ -28,25 +28,42 @@ The VisionGuard image quality model uses a **RandomForest regressor** trained on
 
 | Metric | Raw | Calibrated |
 |--------|-----|------------|
-| MAE | 16.71 | 16.60 |
-| RMSE | 20.30 | 20.32 |
-| R² | 0.33 | 0.33 |
-| Spearman | 0.55 | 0.55 |
+| MAE | 13.42 | 13.27 |
+| RMSE | 16.93 | 16.91 |
+| R² | 0.54 | 0.54 |
+| Spearman | 0.71 | 0.71 |
 
 ### Key Properties
 
-- **5 features:** brightness, contrast, sharpness, saturation, edge_density
+- **20 features:** brightness, contrast, sharpness, saturation, edge_density, noise_estimate, entropy, colorfulness, luminance_p10, luminance_p90, dark_pixel_pct, bright_pixel_pct, luminance_median, gradient_magnitude, dynamic_range, percentile_range, noise_to_signal, channel_std, hue_entropy, texture_complexity
 - **Calibration:** IsotonicRegression fitted on validation set (never on test data)
 - **Test set:** Untouched during training and calibration
-- **Model version:** v2.1.0
+- **Model version:** v4.0.0
 - **Random seed:** 42
-- **Latency:** ~115ms total pipeline (P95: 161ms)
+- **Latency:** ~112ms total pipeline (P95: 137ms)
+
+### Feature Importance
+
+| Rank | Feature | Importance |
+|------|---------|------------|
+| 1 | sharpness | 0.952 |
+| 2 | gradient_magnitude | 0.282 |
+| 3 | colorfulness | 0.157 |
+| 4 | entropy | 0.140 |
+| 5 | saturation | 0.092 |
+| 6 | noise_to_signal | 0.085 |
+| 7 | edge_density | 0.083 |
+| 8 | hue_entropy | 0.072 |
+| 9 | luminance_p10 | 0.069 |
+| 10 | dark_pixel_pct | 0.068 |
+
+The model relies primarily on sharpness, structural information (gradient magnitude, edge density), and color features for quality prediction.
 
 ### Honest Limitations
 
-- R²=0.33: Model explains 33% of quality variance
-- 5 features may not capture all perceptual quality dimensions
+- R²=0.54: Model explains 54% of quality variance
+- 20 hand-crafted features cannot capture all perceptual quality dimensions
 - Training domain (photography) differs from deployment domain (smart-city)
-- Score compression: calibrated predictions range [4.3, 79.4] vs. target range [0, 100]
+- Score compression: calibrated predictions range [7.6, 83.0] vs. target range [0, 100]
 - No issue-level ground truth for detector evaluation
 - Single split (no cross-validation)
