@@ -1,0 +1,134 @@
+{
+  "evaluation_type": "model_improvement",
+  "baseline_version": "v2.1.0",
+  "improved_version": "v3.0.0",
+  "baseline_metrics": {
+    "mae": 16.5986,
+    "rmse": 20.3239,
+    "r2": 0.3327,
+    "spearman": 0.5464
+  },
+  "improved_raw_metrics": {
+    "mae": 14.74,
+    "rmse": 18.381,
+    "r2": 0.4542,
+    "spearman": 0.6561
+  },
+  "improved_calibrated_metrics": {
+    "mae": 14.5039,
+    "rmse": 18.3824,
+    "r2": 0.4541,
+    "spearman": 0.655
+  },
+  "improvement_pct": {
+    "mae": 12.62,
+    "rmse": 9.55,
+    "r2": 36.49,
+    "spearman": 19.88
+  },
+  "selected_model": "RandomForest_tuned",
+  "selected_features": [
+    "brightness",
+    "contrast",
+    "sharpness",
+    "saturation",
+    "edge_density",
+    "noise_estimate",
+    "entropy",
+    "colorfulness"
+  ],
+  "feature_count": 8,
+  "hyperparameters": {
+    "bootstrap": true,
+    "ccp_alpha": 0.0,
+    "criterion": "squared_error",
+    "max_depth": 20,
+    "max_features": 1.0,
+    "max_leaf_nodes": null,
+    "max_samples": null,
+    "min_impurity_decrease": 0.0,
+    "min_samples_leaf": 5,
+    "min_samples_split": 2,
+    "min_weight_fraction_leaf": 0.0,
+    "monotonic_cst": null,
+    "n_estimators": 500,
+    "n_jobs": -1,
+    "oob_score": false,
+    "random_state": 42,
+    "verbose": 0,
+    "warm_start": false
+  },
+  "train_val_gap": {
+    "mae": -4.7455,
+    "rmse": -5.8299,
+    "r2": 0.3036,
+    "spearman": 0.2408
+  },
+  "latency": {
+    "runs": 50,
+    "mean_ms": 86.0,
+    "median_ms": 79.75,
+    "p95_ms": 127.61,
+    "min_ms": 62.66,
+    "max_ms": 136.98
+  },
+  "feature_importance": [
+    {
+      "feature": "sharpness",
+      "importance": 0.289214,
+      "rank": 1
+    },
+    {
+      "feature": "colorfulness",
+      "importance": 0.157181,
+      "rank": 2
+    },
+    {
+      "feature": "edge_density",
+      "importance": 0.112925,
+      "rank": 3
+    },
+    {
+      "feature": "saturation",
+      "importance": 0.103281,
+      "rank": 4
+    },
+    {
+      "feature": "brightness",
+      "importance": 0.094154,
+      "rank": 5
+    },
+    {
+      "feature": "contrast",
+      "importance": 0.082937,
+      "rank": 6
+    },
+    {
+      "feature": "entropy",
+      "importance": 0.081287,
+      "rank": 7
+    },
+    {
+      "feature": "noise_estimate",
+      "importance": 0.079022,
+      "rank": 8
+    }
+  ],
+  "test_statistics": {
+    "sample_count": 2443,
+    "target_mean": 55.6669,
+    "target_std": 24.8802,
+    "prediction_mean": 55.9112,
+    "prediction_std": 16.8581,
+    "prediction_min": 5.7661,
+    "prediction_max": 91.985,
+    "target_min": 0.0,
+    "target_max": 100.0
+  },
+  "overfitting_analysis": {
+    "train_mae": 9.9377,
+    "val_mae": 14.6832,
+    "test_mae": 14.5039,
+    "assessment": "Large gap - possible overfitting"
+  }
+}

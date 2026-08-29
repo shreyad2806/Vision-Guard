@@ -542,6 +542,9 @@ class TestFeatureExtraction:
             "sharpness",
             "saturation",
             "edge_density",
+            "noise_estimate",
+            "entropy",
+            "colorfulness",
         }
 
         assert set(features.keys()) == expected_keys

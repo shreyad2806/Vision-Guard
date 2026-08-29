@@ -1,0 +1,83 @@
+{
+  "evaluation_type": "leakage_free_baseline",
+  "model_version": "v2.1.0",
+  "model": "RandomForestRegressor (n_estimators=300, max_depth=15, min_samples_leaf=5)",
+  "calibrator": "IsotonicRegression (y_min=0, y_max=100, increasing=True, fitted on validation set)",
+  "random_seed": 42,
+  "split": {
+    "method": "stratified_by_quality_bins",
+    "total": 16300,
+    "train": 11414,
+    "validation": 2443,
+    "test": 2443,
+    "train_ratio": 0.70,
+    "validation_ratio": 0.15,
+    "test_ratio": 0.15,
+    "seed": 42,
+    "overlap_verified": true
+  },
+  "datasets": {
+    "KADID-10K": 10125,
+    "KonIQ-10K": 6175,
+    "combined": 16300
+  },
+  "features": ["brightness", "contrast", "sharpness", "saturation", "edge_density"],
+  "feature_count": 5,
+  "raw_model_metrics": {
+    "mae": 16.7117,
+    "rmse": 20.2951,
+    "r2": 0.3346,
+    "spearman": 0.5475,
+    "description": "Model predictions before calibration, evaluated on untouched test set"
+  },
+  "calibrated_model_metrics": {
+    "mae": 16.5986,
+    "rmse": 20.3239,
+    "r2": 0.3327,
+    "spearman": 0.5464,
+    "description": "Model predictions after validation-fitted calibration, evaluated on untouched test set"
+  },
+  "previous_leaky_metrics": {
+    "mae": 16.0521,
+    "rmse": 19.8473,
+    "r2": 0.3597,
+    "spearman": 0.5652,
+    "note": "These were calculated with calibration fitted on the test set. They are potentially optimistic and should not be used as the baseline."
+  },
+  "test_set_statistics": {
+    "sample_count": 2443,
+    "target_mean": 55.6669,
+    "target_std": 24.8802,
+    "prediction_mean": 56.2325,
+    "prediction_std": 14.5219,
+    "prediction_min": 4.33,
+    "prediction_max": 79.36
+  },
+  "latency_ms": {
+    "runs": 50,
+    "mean": 225.08,
+    "median": 219.65,
+    "p95": 333.47,
+    "min": 130.0,
+    "max": 464.87,
+    "std": 76.33,
+    "note": "Full pipeline: feature extraction + ML inference + calibration + issue detection + readiness + explainability + context impacts. Model loaded once (singleton)."
+  },
+  "per_dataset_test_metrics": {
+    "KADID-10K": {
+      "mae": 18.7303,
+      "rmse": 22.4911,
+      "r2": 0.3321,
+      "spearman": 0.5982
+    },
+    "KonIQ-10K": {
+      "mae": 13.0819,
+      "rmse": 16.1242,
+      "r2": 0.2002,
+      "spearman": 0.5583
+    }
+  },
+  "leakage_status": "REMOVED",
+  "calibration_procedure": "IsotonicRegression fitted on validation set raw predictions and validation labels. Applied unchanged to test set raw predictions.",
+  "created_at": "2026-08-29T16:20:00Z"
+}

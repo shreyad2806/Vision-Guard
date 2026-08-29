@@ -1,0 +1,26 @@
+metric,value,note
+model_type,RandomForest,
+model_version,v2.1.0,
+feature_count,5,"brightness,contrast,sharpness,saturation,edge_density"
+training_samples,11414,70% of combined dataset
+validation_samples,2443,15% of combined dataset
+test_samples,2443,15% of combined dataset - untouched during training and calibration
+split_method,stratified_by_quality_bins,70/15/15 with seed=42
+calibration_fitted_on,validation_set,NEVER fitted on test data
+raw_mae,16.7117,"before calibration, on test set"
+raw_rmse,20.2951,"before calibration, on test set"
+raw_r2,0.3346,"before calibration, on test set"
+raw_spearman,0.5475,"before calibration, on test set"
+calibrated_mae,16.5986,"after calibration, on test set"
+calibrated_rmse,20.3239,"after calibration, on test set"
+calibrated_r2,0.3327,"after calibration, on test set"
+calibrated_spearman,0.5464,"after calibration, on test set"
+test_target_mean,55.6669,
+test_target_std,24.8802,
+test_prediction_mean,56.2325,
+test_prediction_std,14.5219,
+test_prediction_min,4.33,
+test_prediction_max,79.3616,
+total_mean_latency_ms,309.27,30 runs
+total_p95_latency_ms,499.74,30 runs
+leakage_status,REMOVED,"Calibration fitted on validation, metrics on test set"

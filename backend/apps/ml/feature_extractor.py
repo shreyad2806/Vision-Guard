@@ -18,12 +18,13 @@ import numpy as np
 # ---------------------------------------------------------------------------
 
 def extract_model_features(img_bgr: np.ndarray) -> dict[str, float]:
-    """Extract the 5 features used by the trained RandomForest.
+    """Extract the 8 features used by the trained model (v3.0).
 
     Preprocessing matches training exactly:
-      - Resize to 224×224
-      - Grayscale for brightness / contrast / sharpness / edge_density
+      - Resize to 224x224
+      - Grayscale for brightness, contrast, sharpness, edge_density, noise, entropy
       - HSV for saturation
+      - BGR for colorfulness
       - Canny(100, 200) for edge_density
     """
     resized = cv2.resize(img_bgr, (224, 224))
@@ -39,12 +40,30 @@ def extract_model_features(img_bgr: np.ndarray) -> dict[str, float]:
     edges = cv2.Canny(gray, 100, 200)
     edge_density = float(np.mean(edges > 0))
 
+    laplacian = cv2.Laplacian(gray, cv2.CV_64F)
+    noise_estimate = float(np.median(np.abs(laplacian)) * 1.4826)
+
+    hist = cv2.calcHist([gray], [0], None, [256], [0, 256]).flatten()
+    hist = hist / hist.sum()
+    hist = hist[hist > 0]
+    entropy = float(abs(-np.sum(hist * np.log2(hist))))
+
+    b, g, r = cv2.split(resized.astype(float))
+    rg = np.abs(r - g)
+    yb = np.abs(0.5 * (r + g) - b)
+    rg_mean, rg_std = np.mean(rg), np.std(rg)
+    yb_mean, yb_std = np.mean(yb), np.std(yb)
+    colorfulness = float(np.sqrt(rg_std**2 + yb_std**2) + 0.3 * np.sqrt(rg_mean**2 + yb_mean**2))
+
     return {
         "brightness": brightness,
         "contrast": contrast,
         "sharpness": sharpness,
         "saturation": saturation,
         "edge_density": edge_density,
+        "noise_estimate": noise_estimate,
+        "entropy": entropy,
+        "colorfulness": colorfulness,
     }
 
 

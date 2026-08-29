@@ -1,0 +1,7 @@
+model,mae,rmse,r2,spearman,train_time_s
+RandomForest,15.2465,18.9159,0.4096,0.6276,3.92
+HistGradientBoosting,14.5735,18.216,0.4525,0.6542,4.53
+ExtraTrees,15.7909,19.339,0.3829,0.6152,0.68
+GradientBoosting,14.9388,18.673,0.4246,0.6307,10.65
+HistGradientBoosting_tuned,14.6283,18.2973,0.4476,0.6478,0
+RandomForest_tuned,14.6832,18.3852,0.4422,0.6551,0

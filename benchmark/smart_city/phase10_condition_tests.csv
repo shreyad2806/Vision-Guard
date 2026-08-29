@@ -1,0 +1,7 @@
+condition,raw_prediction,calibrated_quality_score,quality_label,readiness_score,readiness_status,issue_count,issue_types,notes
+clean_high_quality,48.8542,49.12,,34.12,NOT READY,1,underexposure,
+blurred,9.4622,9.0,,0.0,CRITICAL / REJECT,3,severe_blur; visual_degradation; potential_visual_defect,
+underexposed,16.5005,15.18,,0.0,CRITICAL / REJECT,3,insufficient_sharpness; underexposure; severe_visual_degradation,
+overexposed,54.2283,50.28,,5.28,CRITICAL / REJECT,2,overexposure; potential_visual_defect,
+noisy,71.6617,76.29,,36.29,NOT READY,2,underexposure; image_noise,
+severely_degraded,16.6515,15.18,,0.0,CRITICAL / REJECT,3,severe_blur; underexposure; severe_visual_degradation,

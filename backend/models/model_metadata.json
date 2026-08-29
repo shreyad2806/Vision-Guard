@@ -1,6 +1,6 @@
 {
-  "model_type": "HistGradientBoosting",
-  "model_version": "v2.0.0",
+  "model_type": "RandomForest_tuned",
+  "model_version": "v3.0.0",
   "training_datasets": [
     "KADID-10K",
     "KonIQ-10K"
@@ -10,21 +10,64 @@
     "contrast",
     "sharpness",
     "saturation",
-    "edge_density"
+    "edge_density",
+    "noise_estimate",
+    "entropy",
+    "colorfulness"
   ],
+  "feature_count": 8,
   "target_scale": "0-100 higher-is-better",
+  "split": {
+    "method": "stratified_by_quality_bins",
+    "train_ratio": 0.7,
+    "val_ratio": 0.15,
+    "test_ratio": 0.15,
+    "random_seed": 42,
+    "train_samples": 11414,
+    "val_samples": 2443,
+    "test_samples": 2443
+  },
   "calibration": {
     "method": "IsotonicRegression",
-    "pred_min": 0.0,
-    "pred_max": 89.1154,
-    "pred_mean": 55.6209,
-    "pred_std": 15.4334
+    "fitted_on": "validation_set",
+    "never_fitted_on": "test_set",
+    "y_min": 0.0,
+    "y_max": 100.0,
+    "increasing": true,
+    "pred_min": 5.0787,
+    "pred_max": 90.8094,
+    "pred_mean": 55.761,
+    "pred_std": 16.4985
   },
   "metrics": {
-    "mae": 16.0521,
-    "rmse": 19.8473,
-    "r2": 0.3597,
-    "spearman": 0.5652
+    "note": "Computed on untouched test set. Calibrator fitted on validation data only.",
+    "raw": {
+      "mae": 14.74,
+      "rmse": 18.381,
+      "r2": 0.4542,
+      "spearman": 0.6561
+    },
+    "calibrated": {
+      "mae": 14.5039,
+      "rmse": 18.3824,
+      "r2": 0.4541,
+      "spearman": 0.655
+    },
+    "mae": 14.5039,
+    "rmse": 18.3824,
+    "r2": 0.4541,
+    "spearman": 0.655
+  },
+  "test_statistics": {
+    "sample_count": 2443,
+    "target_mean": 55.6669,
+    "target_std": 24.8802,
+    "prediction_mean": 55.9112,
+    "prediction_std": 16.8581,
+    "prediction_min": 5.7661,
+    "prediction_max": 91.985,
+    "target_min": 0.0,
+    "target_max": 100.0
   },
   "dataset_samples": {
     "kadid": 10125,
@@ -96,6 +139,45 @@
       "p75": 0.1778,
       "p90": 0.2447,
       "p95": 0.2814
+    },
+    "noise_estimate": {
+      "min": 0.0,
+      "max": 370.65,
+      "mean": 21.7696,
+      "std": 25.4193,
+      "p5": 2.9652,
+      "p10": 4.4478,
+      "p25": 5.9304,
+      "p50": 13.3434,
+      "p75": 28.1694,
+      "p90": 50.4084,
+      "p95": 66.717
+    },
+    "entropy": {
+      "min": 0.808,
+      "max": 7.9799,
+      "mean": 6.9686,
+      "std": 0.8337,
+      "p5": 5.3005,
+      "p10": 5.8552,
+      "p25": 6.6572,
+      "p50": 7.2376,
+      "p75": 7.5372,
+      "p90": 7.7134,
+      "p95": 7.7844
+    },
+    "colorfulness": {
+      "min": 0.0,
+      "max": 174.0258,
+      "mean": 55.8691,
+      "std": 27.9002,
+      "p5": 14.3115,
+      "p10": 24.0376,
+      "p25": 36.8564,
+      "p50": 51.7313,
+      "p75": 72.547,
+      "p90": 91.9619,
+      "p95": 104.7083
     }
   },
   "quality_bins": {
@@ -108,12 +190,12 @@
       100
     ],
     "train_distribution": {
-      "0": 1400,
-      "20": 2476,
-      "40": 2748,
-      "60": 3876,
-      "80": 2541
+      "0": 1226,
+      "20": 2166,
+      "40": 2404,
+      "60": 3393,
+      "80": 2224
     }
   },
-  "created_at": "2026-08-28T15:27:57.654897+00:00"
+  "created_at": "2026-08-29T11:11:36.749144+00:00"
 }

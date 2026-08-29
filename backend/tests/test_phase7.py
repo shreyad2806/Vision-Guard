@@ -368,7 +368,7 @@ class TestFeatureExtractionDirect:
         img = np.zeros((100, 100, 3), dtype=np.uint8)
         img[:] = [128, 128, 128]
         features = extract_model_features(img)
-        assert set(features.keys()) == {"brightness", "contrast", "sharpness", "saturation", "edge_density"}
+        assert set(features.keys()) == {"brightness", "contrast", "sharpness", "saturation", "edge_density", "noise_estimate", "entropy", "colorfulness"}
         assert all(isinstance(v, float) for v in features.values())
 
     def test_extract_all_features(self):

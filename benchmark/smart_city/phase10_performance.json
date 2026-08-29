@@ -1,0 +1,84 @@
+{
+  "runs": 30,
+  "stages": {
+    "image_decode": {
+      "mean_ms": 5.46,
+      "p50_ms": 4.4,
+      "p95_ms": 11.69,
+      "min_ms": 2.26,
+      "max_ms": 22.76
+    },
+    "feature_extraction_model": {
+      "mean_ms": 3.83,
+      "p50_ms": 3.5,
+      "p95_ms": 6.43,
+      "min_ms": 1.54,
+      "max_ms": 10.04
+    },
+    "feature_extraction_all": {
+      "mean_ms": 162.83,
+      "p50_ms": 155.72,
+      "p95_ms": 220.3,
+      "min_ms": 102.62,
+      "max_ms": 290.87
+    },
+    "ml_inference": {
+      "mean_ms": 135.99,
+      "p50_ms": 116.25,
+      "p95_ms": 258.67,
+      "min_ms": 82.17,
+      "max_ms": 406.0
+    },
+    "calibration": {
+      "mean_ms": 0.98,
+      "p50_ms": 0.71,
+      "p95_ms": 2.57,
+      "min_ms": 0.42,
+      "max_ms": 3.87
+    },
+    "issue_detection": {
+      "mean_ms": 0.05,
+      "p50_ms": 0.05,
+      "p95_ms": 0.09,
+      "min_ms": 0.03,
+      "max_ms": 0.11
+    },
+    "readiness_calculation": {
+      "mean_ms": 0.04,
+      "p50_ms": 0.03,
+      "p95_ms": 0.07,
+      "min_ms": 0.02,
+      "max_ms": 0.24
+    },
+    "explainability_generation": {
+      "mean_ms": 0.03,
+      "p50_ms": 0.02,
+      "p95_ms": 0.06,
+      "min_ms": 0.01,
+      "max_ms": 0.08
+    },
+    "context_impacts": {
+      "mean_ms": 0.01,
+      "p50_ms": 0.01,
+      "p95_ms": 0.02,
+      "min_ms": 0.0,
+      "max_ms": 0.1
+    },
+    "total": {
+      "mean_ms": 309.27,
+      "p50_ms": 282.29,
+      "p95_ms": 499.74,
+      "min_ms": 217.39,
+      "max_ms": 654.1
+    }
+  },
+  "total_mean_ms": 309.27,
+  "total_p95_ms": 499.74,
+  "note": "Model loaded once per backend process. Calibration loaded once. No retraining/reloading during inference.",
+  "verified": {
+    "model_loaded_once": true,
+    "calibration_loaded_once": true,
+    "inference_no_retrain": true,
+    "no_duplicate_feature_extraction": true
+  }
+}

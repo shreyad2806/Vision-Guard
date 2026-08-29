@@ -1,0 +1,35 @@
+metric,value,category,note
+evaluation_type,leakage_free_baseline,metadata,
+model_type,RandomForest,metadata,
+model_version,v2.1.0,metadata,
+calibrator,IsotonicRegression,metadata,
+calibration_fitted_on,validation_set,metadata,
+random_seed,42,metadata,
+total_samples,16300,split,
+train_samples,11414,split,70%
+validation_samples,2443,split,15%
+test_samples,2443,split,15%
+raw_mae,16.7117,raw_model,untouched test set
+raw_rmse,20.2951,raw_model,untouched test set
+raw_r2,0.3346,raw_model,untouched test set
+raw_spearman,0.5475,raw_model,untouched test set
+calibrated_mae,16.5986,calibrated_model,untouched test set
+calibrated_rmse,20.3239,calibrated_model,untouched test set
+calibrated_r2,0.3327,calibrated_model,untouched test set
+calibrated_spearman,0.5464,calibrated_model,untouched test set
+old_leaky_mae,16.0521,previous_leaky,POTENTIALLY OPTIMISTIC
+old_leaky_rmse,19.8473,previous_leaky,POTENTIALLY OPTIMISTIC
+old_leaky_r2,0.3597,previous_leaky,POTENTIALLY OPTIMISTIC
+old_leaky_spearman,0.5652,previous_leaky,POTENTIALLY OPTIMISTIC
+test_target_mean,55.6669,test_statistics,
+test_target_std,24.8802,test_statistics,
+test_prediction_mean,56.2325,test_statistics,
+test_prediction_std,14.5219,test_statistics,
+test_prediction_min,4.33,test_statistics,
+test_prediction_max,79.36,test_statistics,
+latency_mean_ms,225.08,performance,50 runs full pipeline
+latency_median_ms,219.65,performance,
+latency_p95_ms,333.47,performance,
+latency_min_ms,130.0,performance,
+latency_max_ms,464.87,performance,
+leakage_status,REMOVED,methodology,calibration on validation only

@@ -1,0 +1,45 @@
+{
+  "features": [
+    {
+      "feature": "sharpness",
+      "importance": 0.289214,
+      "rank": 1
+    },
+    {
+      "feature": "colorfulness",
+      "importance": 0.157181,
+      "rank": 2
+    },
+    {
+      "feature": "edge_density",
+      "importance": 0.112925,
+      "rank": 3
+    },
+    {
+      "feature": "saturation",
+      "importance": 0.103281,
+      "rank": 4
+    },
+    {
+      "feature": "brightness",
+      "importance": 0.094154,
+      "rank": 5
+    },
+    {
+      "feature": "contrast",
+      "importance": 0.082937,
+      "rank": 6
+    },
+    {
+      "feature": "entropy",
+      "importance": 0.081287,
+      "rank": 7
+    },
+    {
+      "feature": "noise_estimate",
+      "importance": 0.079022,
+      "rank": 8
+    }
+  ],
+  "method": "tree_feature_importances"
+}

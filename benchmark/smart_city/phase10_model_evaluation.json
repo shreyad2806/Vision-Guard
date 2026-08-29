@@ -1,0 +1,100 @@
+{
+  "evaluation_timestamp": "2026-08-29T10:31:22.220519+00:00",
+  "random_seed": 42,
+  "split_method": "stratified_by_quality_bins",
+  "split_ratios": "70/15/15 (train/validation/test)",
+  "split_note": "Three-way stratified split. Calibrator fitted on validation set only.",
+  "datasets": {
+    "KADID-10K": {
+      "samples": 10125,
+      "raw_scale": "DMOS 1-5, higher=better"
+    },
+    "KonIQ-10K": {
+      "samples": 6175,
+      "raw_scale": "MOS 1-5, higher=better"
+    },
+    "combined": {
+      "samples": 16300
+    }
+  },
+  "split_sizes": {
+    "train": 11414,
+    "validation": 2443,
+    "test": 2443
+  },
+  "normalization": "independent min-max to 0-100 per dataset",
+  "feature_count": 5,
+  "feature_names": [
+    "brightness",
+    "contrast",
+    "sharpness",
+    "saturation",
+    "edge_density"
+  ],
+  "model": {
+    "type": "RandomForest",
+    "hyperparameters": {
+      "n_estimators": 300,
+      "max_depth": 15,
+      "min_samples_leaf": 5,
+      "random_state": 42
+    }
+  },
+  "calibration": {
+    "method": "IsotonicRegression",
+    "y_min": 0.0,
+    "y_max": 100.0,
+    "increasing": true,
+    "fitted_on": "validation_set",
+    "fitted_on_samples": 2443,
+    "never_fitted_on": "test_set",
+    "raw_prediction_range": [
+      5.2133,
+      90.8149
+    ]
+  },
+  "evaluation_metrics": {
+    "note": "Computed on untouched test set. Calibrator fitted on validation data only. No test data leakage.",
+    "raw": {
+      "mae": 16.7117,
+      "rmse": 20.2951,
+      "r2": 0.3346,
+      "spearman": 0.5475,
+      "description": "Model predictions before calibration, evaluated on test set"
+    },
+    "calibrated": {
+      "mae": 16.5986,
+      "rmse": 20.3239,
+      "r2": 0.3327,
+      "spearman": 0.5464,
+      "description": "Model predictions after calibration, evaluated on test set"
+    }
+  },
+  "test_set_statistics": {
+    "sample_count": 2443,
+    "target_mean": 55.6669,
+    "target_std": 24.8802,
+    "prediction_mean": 56.2325,
+    "prediction_std": 14.5219,
+    "prediction_min": 4.33,
+    "prediction_max": 79.3616
+  },
+  "evaluation_methodology": "70/15/15 stratified split with calibration on validation set only. Final metrics on untouched test set.",
+  "ground_truth_availability": {
+    "continuous_quality_labels": true,
+    "categorical_quality_labels": false,
+    "issue_level_ground_truth": false,
+    "reliable_ground_truth": "partial - MOS/DMOS from two IQA datasets"
+  },
+  "metrics_selection_rationale": "Continuous quality ground truth exists. MAE, RMSE, R2, Spearman are appropriate.",
+  "limitations": [
+    "Single split only - no cross-validation",
+    "KADID within-reference correlation not explicitly controlled",
+    "5 features may not capture all quality dimensions",
+    "Training domain (IQA datasets) differs from deployment domain (smart-city)",
+    "No issue-level ground truth for detector evaluation",
+    "R\u00b2 of 0.33 indicates model explains ~33% of variance (limited for production use)",
+    "Score compression: calibrated predictions range 4.3-79.4 while targets span 0-100",
+    "RandomForest selected as best by validation RMSE; HistGradientBoosting is comparable"
+  ]
+}
