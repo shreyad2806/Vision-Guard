@@ -4,6 +4,10 @@
 
 VisionGuard is a full-stack computer-vision application that evaluates image quality, detects visual degradation, estimates downstream analytics readiness, and provides explainable quality decisions.
 
+[🌐 Live Demo](https://visionguard-frontend-5nwk.onrender.com) ·
+[⚙️ Backend API](https://visionguard-backend-pbts.onrender.com) ·
+[❤️ API Health](https://visionguard-backend-pbts.onrender.com/api/health)
+
 Built for the **AI-Powered Image Quality & Defect Detection Technical Assessment**.
 
 ---
