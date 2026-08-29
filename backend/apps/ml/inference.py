@@ -31,7 +31,7 @@ from apps.ml.issue_detector import detect_issues
 
 from apps.ml.readiness import calculate_analytics_readiness
 from apps.ml.context_definitions import get_context_impacts
-from apps.ml.explainability import generate_issue_explanations
+from apps.ml.explainability import generate_issue_explanations, generate_primary_explanation
 from apps.ml.downstream_analytics import estimate_downstream_analytics
 
 
@@ -183,8 +183,6 @@ def predict_quality(
     # --- Step 7: Issue-driven explainability (Phase 6) ---
     issue_explanations = generate_issue_explanations(issues)
 
-    elapsed_ms = int((time.perf_counter() - start) * 1000)
-
     # --- Step 8: Downstream analytics impact estimation ---
     downstream_analytics = estimate_downstream_analytics(
         quality_score=quality_score,
@@ -192,6 +190,15 @@ def predict_quality(
         context=context,
         analytics_readiness_score=readiness["score"],
     )
+    
+    # --- Step 9: Advanced primary issue explanation ---
+    primary_explanation = generate_primary_explanation(
+        issues=issues,
+        quality_score=quality_score,
+        downstream_analytics=downstream_analytics,
+    )
+
+    elapsed_ms = int((time.perf_counter() - start) * 1000)
 
     return {
         "quality_score": int(round(quality_score)),
@@ -213,6 +220,7 @@ def predict_quality(
         "context_impacts": context_impacts,
         "issue_explanations": issue_explanations,
         "downstream_analytics": downstream_analytics,
+        "primary_explanation": primary_explanation,
     }
 
 

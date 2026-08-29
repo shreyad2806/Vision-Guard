@@ -257,3 +257,175 @@ def generate_issue_explanations(
         })
 
     return explanations
+
+
+# ---------------------------------------------------------------------------
+# Advanced explainability: Issue-driven primary explanation
+# ---------------------------------------------------------------------------
+
+# Severity priority (higher = more important)
+_SEVERITY_PRIORITY = {
+    "critical": 4,
+    "high": 3,
+    "moderate": 2,
+    "low": 1,
+}
+
+
+# Downstream analytics impact by issue type
+_DOWNSTREAM_IMPACT: dict[str, str] = {
+    "severe_blur": (
+        "Object detection, person tracking, and license-plate reading may fail "
+        "entirely. Fine detail required for classification is destroyed."
+    ),
+    "insufficient_sharpness": (
+        "Edge-based detection algorithms may miss small or distant objects. "
+        "Face recognition and plate reading confidence may decrease."
+    ),
+    "underexposure": (
+        "Dark regions hide pedestrians, vehicles, and road markings. Detection "
+        "reliability is reduced in shadowed areas."
+    ),
+    "overexposure": (
+        "Bright regions lose surface detail, reducing the reliability of "
+        "colour-based classification and surface analysis."
+    ),
+    "image_noise": (
+        "Sensor noise creates false edges and textures, interfering with "
+        "feature extraction and object boundary detection."
+    ),
+    "severe_visual_degradation": (
+        "Multiple quality failures indicate substantial loss of usable visual "
+        "information. Automated analytics are likely unreliable."
+    ),
+    "visual_degradation": (
+        "Reduced visual information across multiple signals may lower detection "
+        "confidence and increase false-positive rates."
+    ),
+    "potential_visual_defect": (
+        "Possible capture or compression artefacts may produce unreliable "
+        "detections in affected regions."
+    ),
+    "low_contrast": (
+        "Weak contrast limits object-background separation, reducing "
+        "segmentation accuracy and detection confidence."
+    ),
+    "limited_dynamic_range": (
+        "A narrow tonal range compresses scene detail, limiting the "
+        "effectiveness of gradient-based detectors."
+    ),
+    "low_color_information": (
+        "Desaturated imagery limits colour-based analytics such as vehicle "
+        "classification and appearance-based re-identification."
+    ),
+}
+
+
+def _select_primary_issue(issues: list[dict]) -> dict | None:
+    """Select the primary issue using deterministic priority rules.
+    
+    Priority: highest severity -> highest confidence -> first in list.
+    """
+    if not issues:
+        return None
+    
+    def sort_key(issue: dict) -> tuple[int, float]:
+        severity = issue.get("severity", "low")
+        confidence = issue.get("confidence", 0.0)
+        return (_SEVERITY_PRIORITY.get(severity, 0), confidence)
+    
+    return max(issues, key=sort_key)
+
+
+def generate_primary_explanation(
+    issues: list[dict],
+    quality_score: float,
+    downstream_analytics: list[dict] | None = None,
+) -> dict:
+    """Generate a structured primary issue explanation.
+    
+    Returns a dict with:
+    - primary_issue: {type, severity, confidence, label, evidence, impact}
+    - why_it_matters: str
+    - downstream_impact: str
+    - recommendation: str
+    - secondary_issues: list[dict]
+    - no_issues_detected: bool
+    """
+    primary = _select_primary_issue(issues)
+    
+    if primary is None:
+        return {
+            "primary_issue": None,
+            "why_it_matters": (
+                "The image does not contain detected quality problems severe "
+                "enough to trigger an issue warning. Quality score and analytics "
+                "readiness reflect the overall image assessment."
+            ),
+            "downstream_impact": (
+                "No significant quality issues detected. Downstream analytics "
+                "should perform normally for this image quality level."
+            ),
+            "recommendation": (
+                "No action required. The image meets quality standards for "
+                "downstream analytics."
+            ),
+            "secondary_issues": [],
+            "no_issues_detected": True,
+        }
+    
+    issue_type = primary.get("type", "unknown")
+    severity = primary.get("severity", "moderate")
+    
+    # Build primary issue with evidence
+    primary_issue = {
+        "type": issue_type,
+        "severity": severity,
+        "confidence": primary.get("confidence", 1.0),
+        "label": _issue_label(issue_type, severity),
+        "evidence": {
+            "metric": primary.get("metric", "unknown"),
+            "value": primary.get("value", 0.0),
+            "threshold": primary.get("threshold", 0.0),
+        },
+        "impact": primary.get("impact", ""),
+    }
+    
+    # Build secondary issues
+    secondary_issues = []
+    for issue in issues:
+        if issue is primary:
+            continue
+        issue_type_s = issue.get("type", "unknown")
+        severity_s = issue.get("severity", "moderate")
+        secondary_issues.append({
+            "type": issue_type_s,
+            "severity": severity_s,
+            "label": _issue_label(issue_type_s, severity_s),
+            "confidence": issue.get("confidence", 1.0),
+        })
+    
+    # Get downstream impact
+    downstream_text = _DOWNSTREAM_IMPACT.get(
+        issue_type,
+        "This issue may reduce the reliability of downstream analytics."
+    )
+    
+    # Build downstream analytics summary if available
+    downstream_summary = []
+    if downstream_analytics:
+        for da in downstream_analytics[:4]:  # Show top 4
+            downstream_summary.append({
+                "analytics_type": da.get("analytics_type", ""),
+                "estimated_reliability": da.get("estimated_reliability", "MEDIUM"),
+            })
+    
+    return {
+        "primary_issue": primary_issue,
+        "why_it_matters": _why_it_matters(issue_type, severity),
+        "downstream_impact": downstream_text,
+        "downstream_summary": downstream_summary,
+        "recommendation": _recommendation(issue_type),
+        "secondary_issues": secondary_issues,
+        "no_issues_detected": False,
+    }

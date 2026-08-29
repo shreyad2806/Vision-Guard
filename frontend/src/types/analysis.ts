@@ -104,6 +104,51 @@ export interface AnalysisResult {
 
   /** Downstream analytics impact estimation */
   downstream_analytics?: DownstreamAnalytics[];
+
+  /** Advanced primary issue explanation */
+  primary_explanation?: PrimaryExplanation;
+}
+
+/** Primary issue evidence */
+export interface PrimaryEvidence {
+  metric: string;
+  value: number;
+  threshold: number;
+}
+
+/** Primary issue */
+export interface PrimaryIssue {
+  type: string;
+  severity: string;
+  confidence: number;
+  label: string;
+  evidence: PrimaryEvidence;
+  impact: string;
+}
+
+/** Secondary issue (simplified) */
+export interface SecondaryIssue {
+  type: string;
+  severity: string;
+  label: string;
+  confidence: number;
+}
+
+/** Downstream analytics summary for primary explanation */
+export interface DownstreamSummary {
+  analytics_type: string;
+  estimated_reliability: string;
+}
+
+/** Advanced primary explanation */
+export interface PrimaryExplanation {
+  primary_issue: PrimaryIssue | null;
+  why_it_matters: string;
+  downstream_impact: string;
+  downstream_summary?: DownstreamSummary[];
+  recommendation: string;
+  secondary_issues: SecondaryIssue[];
+  no_issues_detected: boolean;
 }
 
 /** Downstream analytics reliability estimate */

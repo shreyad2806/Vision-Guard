@@ -17,6 +17,7 @@ import AnalyticsReadiness from "./AnalyticsReadiness";
 import ContextImpact from "./ContextImpact";
 import IssueExplanations from "./IssueExplanations";
 import DownstreamAnalytics from "./DownstreamAnalytics";
+import PrimaryExplanation from "./PrimaryExplanation";
 
 interface AnalysisResultProps {
   result: AnalysisResultType;
@@ -129,7 +130,14 @@ export default function AnalysisResult({ result }: AnalysisResultProps) {
         <ImageStatistics statistics={result.statistics} />
       </div>
 
-      {/* ── Why This Decision? ── */}
+      {/* ── Why This Decision? (Advanced Issue-Driven) ── */}
+      {result.primary_explanation && (
+        <div className="results-full">
+          <PrimaryExplanation explanation={result.primary_explanation} />
+        </div>
+      )}
+
+      {/* ── Secondary Metric Details ── */}
       <div className="results-full">
         <FeatureInterpretation result={result} />
       </div>

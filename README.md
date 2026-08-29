@@ -158,3 +158,30 @@ The system tailors analytics to the selected pipeline context:
 - **Smart Campus:** Object, Vehicle, Person, OCR detection
 
 **Important:** These are estimated reliability assessments derived from VisionGuard's image-quality analysis. They are not measured downstream model accuracies. No downstream models (YOLO, OCR, etc.) are actually executed or evaluated.
+
+## Explainable Decisions
+
+VisionGuard does not only return a score. It identifies the primary image-quality issue and provides a structured explanation:
+
+```
+PRIMARY ISSUE
+  → Underexposure — HIGH
+
+EVIDENCE
+  → Dark pixel ratio: 24.18% (threshold: 25.00%)
+
+WHY THIS MATTERS
+  → Underexposure reduces contrast in shadow areas, lowering detection
+    confidence for people, vehicles, and infrastructure elements.
+
+DOWNSTREAM IMPACT
+  → Person Detection: MEDIUM
+  → Vehicle Detection: MEDIUM
+  → OCR / License Plate: LOW
+
+RECOMMENDATION
+  → Increase camera exposure or gain, add supplementary lighting,
+    or apply adaptive histogram equalisation.
+```
+
+Each explanation is driven by the actual detected issues, their severity, and measured evidence from the image. No values are hard-coded.

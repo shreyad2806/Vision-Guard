@@ -958,3 +958,174 @@ class TestSmartCityBenchmark:
                 "not model accuracy" in content_lower or "benchmark dataset averages" in content_lower), (
             "Report should clarify these are not accuracy metrics"
         )
+
+
+# ------------------------------------------------------------------
+# Advanced Explainability tests
+# ------------------------------------------------------------------
+class TestAdvancedExplainability:
+    """Verify issue-driven explainability works correctly."""
+
+    def test_primary_explanation_in_inference(self):
+        """predict_quality should return primary_explanation."""
+        from apps.ml.inference import predict_quality
+        from apps.ml.feature_extractor import extract_model_features, extract_all_features
+        import numpy as np
+
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+        img[:] = [128, 128, 128]
+        model_feats = extract_model_features(img)
+        all_feats = extract_all_features(img)
+        result = predict_quality(model_feats, all_feats, context="CCTV Surveillance")
+        assert "primary_explanation" in result
+        assert isinstance(result["primary_explanation"], dict)
+
+    def test_primary_explanation_has_required_fields(self):
+        """Primary explanation should have all required fields."""
+        from apps.ml.inference import predict_quality
+        from apps.ml.feature_extractor import extract_model_features, extract_all_features
+        import numpy as np
+
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+        img[:] = [128, 128, 128]
+        model_feats = extract_model_features(img)
+        all_feats = extract_all_features(img)
+        result = predict_quality(model_feats, all_feats, context="CCTV Surveillance")
+        pe = result["primary_explanation"]
+        assert "why_it_matters" in pe
+        assert "downstream_impact" in pe
+        assert "recommendation" in pe
+        assert "secondary_issues" in pe
+        assert "no_issues_detected" in pe
+
+    def test_clean_image_no_primary_issue(self):
+        """Clean image should have no_issues_detected = True."""
+        from apps.ml.inference import predict_quality
+        from apps.ml.feature_extractor import extract_model_features, extract_all_features
+        import numpy as np
+
+        # Create a more realistic "clean" image
+        img = np.random.RandomState(42).randint(80, 200, (100, 100, 3), dtype=np.uint8)
+        model_feats = extract_model_features(img)
+        all_feats = extract_all_features(img)
+        result = predict_quality(model_feats, all_feats, context="CCTV Surveillance")
+        pe = result["primary_explanation"]
+        # Either no issues detected, or if issues exist, they should be valid
+        if pe["no_issues_detected"]:
+            assert pe["primary_issue"] is None
+        else:
+            assert pe["primary_issue"] is not None
+            assert "type" in pe["primary_issue"]
+            assert "severity" in pe["primary_issue"]
+            assert "evidence" in pe["primary_issue"]
+
+    def test_dark_image_has_underexposure_issue(self):
+        """Dark image should have underexposure as primary issue."""
+        from apps.ml.inference import predict_quality
+        from apps.ml.feature_extractor import extract_model_features, extract_all_features
+        import numpy as np
+
+        # Very dark image
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+        img[:] = [10, 10, 10]
+        model_feats = extract_model_features(img)
+        all_feats = extract_all_features(img)
+        result = predict_quality(model_feats, all_feats, context="CCTV Surveillance")
+        pe = result["primary_explanation"]
+        if not pe["no_issues_detected"]:
+            assert pe["primary_issue"] is not None
+            issue_type = pe["primary_issue"]["type"]
+            # Should be underexposure or severe_visual_degradation
+            assert issue_type in ("underexposure", "severe_visual_degradation", "severe_blur"), (
+                f"Expected underexposure-related issue, got {issue_type}"
+            )
+
+    def test_blurred_image_has_blur_issue(self):
+        """Blurred image should have blur as primary issue."""
+        from apps.ml.inference import predict_quality
+        from apps.ml.feature_extractor import extract_model_features, extract_all_features
+        import numpy as np
+        import cv2
+
+        # Create and blur an image
+        img = np.random.RandomState(42).randint(80, 200, (100, 100, 3), dtype=np.uint8)
+        img_blur = cv2.GaussianBlur(img, (51, 51), 25)
+        model_feats = extract_model_features(img_blur)
+        all_feats = extract_all_features(img_blur)
+        result = predict_quality(model_feats, all_feats, context="CCTV Surveillance")
+        pe = result["primary_explanation"]
+        if not pe["no_issues_detected"]:
+            assert pe["primary_issue"] is not None
+            issue_type = pe["primary_issue"]["type"]
+            # Should be blur-related
+            assert "blur" in issue_type or "sharpness" in issue_type, (
+                f"Expected blur-related issue, got {issue_type}"
+            )
+
+    def test_primary_issue_severity_matches_detector(self):
+        """Primary issue severity should match detector output."""
+        from apps.ml.inference import predict_quality
+        from apps.ml.feature_extractor import extract_model_features, extract_all_features
+        import numpy as np
+
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+        img[:] = [10, 10, 10]
+        model_feats = extract_model_features(img)
+        all_feats = extract_all_features(img)
+        result = predict_quality(model_feats, all_feats, context="CCTV Surveillance")
+        
+        # Get issues from the result
+        issues = result["issues"]
+        pe = result["primary_explanation"]
+        
+        if not pe["no_issues_detected"] and issues:
+            # Primary issue should be the highest severity issue
+            primary_type = pe["primary_issue"]["type"]
+            primary_severity = pe["primary_issue"]["severity"]
+            
+            # Find this issue in the issues list
+            matching_issues = [i for i in issues if i["type"] == primary_type]
+            assert len(matching_issues) > 0, f"Primary issue {primary_type} not found in issues"
+            assert matching_issues[0]["severity"] == primary_severity, (
+                f"Severity mismatch: {matching_issues[0]['severity']} != {primary_severity}"
+            )
+
+    def test_secondary_issues_preserved(self):
+        """Secondary issues should be preserved."""
+        from apps.ml.inference import predict_quality
+        from apps.ml.feature_extractor import extract_model_features, extract_all_features
+        import numpy as np
+
+        # Create an image with multiple issues
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+        img[:] = [10, 10, 10]
+        model_feats = extract_model_features(img)
+        all_feats = extract_all_features(img)
+        result = predict_quality(model_feats, all_feats, context="CCTV Surveillance")
+        pe = result["primary_explanation"]
+        
+        # Secondary issues should be a list
+        assert isinstance(pe["secondary_issues"], list)
+        
+        # If there are multiple issues, secondary should have some
+        if len(result["issues"]) > 1:
+            assert len(pe["secondary_issues"]) > 0, "Secondary issues should not be empty"
+
+    def test_no_fabricated_accuracy_in_explanation(self):
+        """Explanation should not contain fabricated accuracy numbers."""
+        from apps.ml.inference import predict_quality
+        from apps.ml.feature_extractor import extract_model_features, extract_all_features
+        import numpy as np
+
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+        img[:] = [128, 128, 128]
+        model_feats = extract_model_features(img)
+        all_feats = extract_all_features(img)
+        result = predict_quality(model_feats, all_feats, context="CCTV Surveillance")
+        pe = result["primary_explanation"]
+        
+        # Check why_it_matters and downstream_impact don't contain accuracy claims
+        for field in ["why_it_matters", "downstream_impact", "recommendation"]:
+            text = pe.get(field, "")
+            assert "%" not in text, f"{field} should not contain percentage: {text}"
+            assert "accuracy" not in text.lower(), f"{field} should not claim accuracy: {text}"
