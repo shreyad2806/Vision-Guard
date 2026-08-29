@@ -14,7 +14,10 @@ class Settings(BaseSettings):
     # Uploads
     upload_dir: str = str(Path(__file__).resolve().parent.parent.parent / "data" / "uploads")
     max_upload_size_mb: int = 20
-    allowed_origins: str = "http://localhost,http://localhost:5173,http://localhost:80,http://localhost:3000"
+    allowed_origins: str = (
+        "http://localhost,http://localhost:5173,http://localhost:80,http://localhost:3000"
+        ",https://visionguard-frontend-5nwk.onrender.com"
+    )
 
     # ML model
     model_path: str = str(Path(__file__).resolve().parent.parent.parent / "models" / "model.joblib")

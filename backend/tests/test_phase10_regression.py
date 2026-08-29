@@ -1129,3 +1129,99 @@ class TestAdvancedExplainability:
             text = pe.get(field, "")
             assert "%" not in text, f"{field} should not contain percentage: {text}"
             assert "accuracy" not in text.lower(), f"{field} should not claim accuracy: {text}"
+
+
+# ------------------------------------------------------------------
+# CORS tests
+# ------------------------------------------------------------------
+class TestCORSConfiguration:
+    """Verify CORS is correctly configured for production deployment."""
+
+    def test_cors_allows_frontend_origin(self):
+        """The production frontend origin should be in allowed_origins."""
+        from apps.core.config import settings
+        origins = [o.strip() for o in settings.allowed_origins.split(",") if o.strip()]
+        assert "https://visionguard-frontend-5nwk.onrender.com" in origins, (
+            f"Render frontend origin not in allowed_origins: {origins}"
+        )
+
+    def test_cors_allows_localhost_origins(self):
+        """Localhost development origins should still be allowed."""
+        from apps.core.config import settings
+        origins = [o.strip() for o in settings.allowed_origins.split(",") if o.strip()]
+        assert "http://localhost:5173" in origins
+        assert "http://localhost:3000" in origins
+
+    def test_cors_middleware_returns_allow_origin_header(self):
+        """CORS preflight from the frontend origin should succeed."""
+        from fastapi.testclient import TestClient
+        from apps.main import app
+
+        client = TestClient(app)
+        response = client.options(
+            "/api/v1/analyze",
+            headers={
+                "Origin": "https://visionguard-frontend-5nwk.onrender.com",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        assert response.status_code in (200, 204), (
+            f"Preflight should return 200/204, got {response.status_code}"
+        )
+        assert "access-control-allow-origin" in response.headers, (
+            "Missing Access-Control-Allow-Origin header in preflight response"
+        )
+        assert response.headers["access-control-allow-origin"] == (
+            "https://visionguard-frontend-5nwk.onrender.com"
+        )
+
+    def test_cors_get_from_frontend_origin(self):
+        """A GET request from the frontend origin should be allowed."""
+        from fastapi.testclient import TestClient
+        from apps.main import app
+
+        client = TestClient(app)
+        response = client.get(
+            "/health",
+            headers={"Origin": "https://visionguard-frontend-5nwk.onrender.com"},
+        )
+        assert "access-control-allow-origin" in response.headers
+        assert response.headers["access-control-allow-origin"] == (
+            "https://visionguard-frontend-5nwk.onrender.com"
+        )
+
+    def test_cors_rejects_unknown_origin(self):
+        """Requests from unknown origins should not get CORS headers."""
+        from fastapi.testclient import TestClient
+        from apps.main import app
+
+        client = TestClient(app)
+        response = client.get(
+            "/health",
+            headers={"Origin": "https://evil-site.example.com"},
+        )
+        # Should either have no CORS header or a different origin
+        allow_origin = response.headers.get("access-control-allow-origin", "")
+        assert allow_origin != "https://evil-site.example.com", (
+            "CORS should not grant access to unknown origins"
+        )
+
+    def test_cors_preflight_methods_included(self):
+        """Preflight should indicate allowed methods."""
+        from fastapi.testclient import TestClient
+        from apps.main import app
+
+        client = TestClient(app)
+        response = client.options(
+            "/api/v1/analyze",
+            headers={
+                "Origin": "https://visionguard-frontend-5nwk.onrender.com",
+                "Access-Control-Request-Method": "POST",
+            },
+        )
+        allow_methods = response.headers.get("access-control-allow-methods", "")
+        assert "POST" in allow_methods or "*" in allow_methods, (
+            f"POST should be in allowed methods: {allow_methods}"
+        )
+        assert "OPTIONS" in allow_methods or "*" in allow_methods
