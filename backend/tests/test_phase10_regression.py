@@ -862,3 +862,99 @@ class TestDownstreamAnalytics:
             assert "%" not in item["expected_impact"], (
                 f"Should not contain percentage: {item['expected_impact']}"
             )
+
+
+# ------------------------------------------------------------------
+# Smart-City Benchmark tests
+# ------------------------------------------------------------------
+class TestSmartCityBenchmark:
+    """Verify smart-city benchmark results are valid."""
+
+    def test_benchmark_summary_exists(self):
+        """The benchmark summary JSON should exist."""
+        summary_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase5_summary.json"
+        assert summary_path.exists(), f"Benchmark summary not found: {summary_path}"
+
+    def test_benchmark_has_600_images(self):
+        """Benchmark should contain exactly 600 images."""
+        summary_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase5_summary.json"
+        with open(summary_path) as f:
+            data = json.load(f)
+        assert data["total_images"] == 600, f"Expected 600 images, got {data['total_images']}"
+        assert data["processed_images"] == 600, f"Expected 600 processed, got {data['processed_images']}"
+
+    def test_benchmark_has_five_contexts(self):
+        """Benchmark should have exactly 5 contexts."""
+        summary_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase5_summary.json"
+        with open(summary_path) as f:
+            data = json.load(f)
+        contexts = set(data["by_context"].keys())
+        expected = {"CCTV Surveillance", "Drone Imagery", "Infrastructure Inspection",
+                    "Low-Light Evaluation", "Traffic Monitoring"}
+        assert contexts == expected, f"Expected contexts {expected}, got {contexts}"
+
+    def test_context_counts_correct(self):
+        """Context image counts should match expected distribution."""
+        summary_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase5_summary.json"
+        with open(summary_path) as f:
+            data = json.load(f)
+        expected_counts = {
+            "CCTV Surveillance": 100,
+            "Drone Imagery": 200,
+            "Infrastructure Inspection": 100,
+            "Low-Light Evaluation": 100,
+            "Traffic Monitoring": 100,
+        }
+        for ctx, expected in expected_counts.items():
+            actual = data["by_context"][ctx]["image_count"]
+            assert actual == expected, f"{ctx}: expected {expected}, got {actual}"
+
+    def test_quality_scores_in_valid_range(self):
+        """All quality scores should be within [0, 100]."""
+        summary_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase5_summary.json"
+        with open(summary_path) as f:
+            data = json.load(f)
+        for ctx, ctx_data in data["by_context"].items():
+            qs = ctx_data["average_quality_score"]
+            assert 0 <= qs <= 100, f"{ctx}: quality score {qs} out of range"
+
+    def test_readiness_scores_in_valid_range(self):
+        """All readiness scores should be within [0, 100]."""
+        summary_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase5_summary.json"
+        with open(summary_path) as f:
+            data = json.load(f)
+        for ctx, ctx_data in data["by_context"].items():
+            rs = ctx_data["average_analytics_readiness_score"]
+            assert 0 <= rs <= 100, f"{ctx}: readiness score {rs} out of range"
+
+    def test_readiness_distributions_sum_to_image_count(self):
+        """Readiness distribution counts should sum to image count."""
+        summary_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase5_summary.json"
+        with open(summary_path) as f:
+            data = json.load(f)
+        for ctx, ctx_data in data["by_context"].items():
+            dist = ctx_data["readiness_status_distribution"]
+            total = sum(dist.values())
+            assert total == ctx_data["image_count"], (
+                f"{ctx}: distribution sum {total} != image count {ctx_data['image_count']}"
+            )
+
+    def test_benchmark_csv_exists(self):
+        """The benchmark CSV should exist."""
+        csv_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_smart_city_benchmark.csv"
+        assert csv_path.exists(), f"Benchmark CSV not found: {csv_path}"
+
+    def test_benchmark_report_exists(self):
+        """The benchmark report should exist."""
+        md_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_smart_city_benchmark.md"
+        assert md_path.exists(), f"Benchmark report not found: {md_path}"
+        with open(md_path) as f:
+            content = f.read()
+        assert len(content) > 1000, "Report should have substantial content"
+        assert "600" in content, "Report should mention 600 images"
+        # Check that the report clarifies these are not accuracy metrics
+        content_lower = content.lower()
+        assert ("not accuracy" in content_lower or "not ml accuracy" in content_lower or
+                "not model accuracy" in content_lower or "benchmark dataset averages" in content_lower), (
+            "Report should clarify these are not accuracy metrics"
+        )

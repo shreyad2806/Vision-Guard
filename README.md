@@ -83,6 +83,31 @@ VisionGuard was evaluated under controlled visual conditions to verify that the 
 
 These controlled tests demonstrate that changes in image quality produce corresponding changes in detected issues, quality assessment, and downstream analytics readiness. Quality scores range from 13.7 (degraded) to 66.7 (overexposed), and readiness scores range from 0.0 (critical) to 45.8 (limited).
 
+## ML Model Performance
+
+| Metric | v4.0 |
+|---|---:|
+| MAE | 13.27 |
+| RMSE | 16.91 |
+| R² | 0.54 |
+| Spearman | 0.71 |
+
+These are ML predictive metrics measured on the held-out test set (leakage-free evaluation).
+
+## Smart-City Benchmark Results
+
+VisionGuard was evaluated on 600 images spanning five smart-city contexts.
+
+| Context | Images | Avg Quality | Avg Readiness |
+|---|---:|---:|---:|
+| CCTV Surveillance | 100 | 48.73 | 45.97 |
+| Drone Imagery | 200 | 38.00 | 23.29 |
+| Infrastructure Inspection | 100 | 48.34 | 28.53 |
+| Low-Light Evaluation | 100 | 25.61 | 0.59 |
+| Traffic Monitoring | 100 | 55.61 | 42.28 |
+
+> **Note:** Average quality and analytics readiness scores are benchmark dataset statistics, not model accuracy metrics. Predictive model performance is reported separately using MAE, RMSE, R², and Spearman correlation on the held-out test set.
+
 ## Downstream Analytics Simulation
 
 VisionGuard estimates how detected image-quality problems may affect downstream computer-vision analytics. This provides an **estimated downstream reliability** assessment — not measured downstream model accuracy.

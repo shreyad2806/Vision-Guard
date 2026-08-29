@@ -1,0 +1,6 @@
+context,dataset,image_count,average_quality_score,average_analytics_readiness_score,ready_count,limited_readiness_count,not_ready_count,critical_reject_count
+CCTV Surveillance,,100,48.73,45.97,23,44,23,10
+Drone Imagery,,200,38.0,23.29,0,0,200,0
+Infrastructure Inspection,,100,48.34,28.53,1,13,53,33
+Low-Light Evaluation,,100,25.61,0.59,0,0,0,100
+Traffic Monitoring,,100,55.61,42.28,14,43,32,11
