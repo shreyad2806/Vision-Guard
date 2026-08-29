@@ -1,0 +1,7 @@
+condition,quality_score,analytics_readiness_score,readiness_status,primary_issue,primary_severity,primary_confidence,issue_count,issue_types,raw_prediction
+clean,60.84,45.84,LIMITED READINESS,underexposure,high,1.0,1,underexposure,62.4524
+blurred,13.74,0.0,CRITICAL / REJECT,severe_blur,critical,1.0,4,severe_blur; underexposure; visual_degradation; potential_visual_defect,13.1704
+underexposed,24.71,0.0,CRITICAL / REJECT,severe_blur,critical,1.0,3,severe_blur; underexposure; severe_visual_degradation,23.5253
+overexposed,66.68,21.68,NOT READY,overexposure,critical,1.0,2,overexposure; potential_visual_defect,65.5179
+noisy,29.55,0.0,CRITICAL / REJECT,underexposure,high,1.0,2,underexposure; image_noise,30.1572
+severely_degraded,13.74,0.0,CRITICAL / REJECT,underexposure,critical,1.0,3,underexposure; image_noise; severe_visual_degradation,12.0304

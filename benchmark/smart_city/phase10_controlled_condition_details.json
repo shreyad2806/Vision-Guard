@@ -1,0 +1,326 @@
+{
+  "model_version": "v4.0.0",
+  "model_type": "HistGradientBoostingRegressor",
+  "calibrator_type": "IsotonicRegression",
+  "feature_count": 20,
+  "conditions": [
+    {
+      "condition": "clean",
+      "quality_score": 60.84,
+      "raw_prediction": 62.4524,
+      "analytics_readiness_score": 45.84,
+      "readiness_status": "LIMITED READINESS",
+      "issue_count": 1,
+      "primary_issue": "underexposure",
+      "issues": [
+        {
+          "type": "underexposure",
+          "severity": "high",
+          "confidence": 1.0,
+          "metric": "dark_pixel_ratio",
+          "value": 32.9,
+          "threshold": 25.0
+        }
+      ],
+      "model_features": {
+        "brightness": 120.5962213010204,
+        "contrast": 83.92686328091241,
+        "sharpness": 1188.3610481141457,
+        "saturation": 88.0420918367347,
+        "edge_density": 0.04940609056122449,
+        "noise_estimate": 5.9304,
+        "entropy": 4.0206451416015625,
+        "colorfulness": 38.71558502216581,
+        "luminance_p10": 3.0,
+        "luminance_p90": 190.0,
+        "dark_pixel_pct": 32.59725765306122,
+        "bright_pixel_pct": 0.0,
+        "luminance_median": 187.0,
+        "gradient_magnitude": 47.37186323460385,
+        "dynamic_range": 189.0,
+        "percentile_range": 187.0,
+        "noise_to_signal": 0.04917567014970659,
+        "channel_std": 8.735352300813378,
+        "hue_entropy": 4.689942359924316,
+        "texture_complexity": 0.5897969259819615
+      }
+    },
+    {
+      "condition": "blurred",
+      "quality_score": 13.74,
+      "raw_prediction": 13.1704,
+      "analytics_readiness_score": 0.0,
+      "readiness_status": "CRITICAL / REJECT",
+      "issue_count": 4,
+      "primary_issue": "severe_blur",
+      "issues": [
+        {
+          "type": "severe_blur",
+          "severity": "critical",
+          "confidence": 1.0,
+          "metric": "laplacian_variance",
+          "value": 1.05,
+          "threshold": 15.0
+        },
+        {
+          "type": "underexposure",
+          "severity": "high",
+          "confidence": 1.0,
+          "metric": "dark_pixel_ratio",
+          "value": 22.81,
+          "threshold": 25.0
+        },
+        {
+          "type": "visual_degradation",
+          "severity": "high",
+          "confidence": 0.9,
+          "metric": "degradation_signal_count",
+          "value": 2.0,
+          "threshold": 2.0
+        },
+        {
+          "type": "potential_visual_defect",
+          "severity": "high",
+          "confidence": 0.85,
+          "metric": "visual_anomaly_signal_count",
+          "value": 2.0,
+          "threshold": 2.0
+        }
+      ],
+      "model_features": {
+        "brightness": 120.56895727040816,
+        "contrast": 72.66073889027749,
+        "sharpness": 2.345065368309164,
+        "saturation": 55.684211575255105,
+        "edge_density": 0.0,
+        "noise_estimate": 1.4826,
+        "entropy": 5.941934108734131,
+        "colorfulness": 33.8743776352764,
+        "luminance_p10": 4.0,
+        "luminance_p90": 189.0,
+        "dark_pixel_pct": 23.108657525510203,
+        "bright_pixel_pct": 0.0,
+        "luminance_median": 157.0,
+        "gradient_magnitude": 25.222347834415828,
+        "dynamic_range": 186.0,
+        "percentile_range": 185.0,
+        "noise_to_signal": 0.012296697537782238,
+        "channel_std": 8.715411079231428,
+        "hue_entropy": 3.9052579402923584,
+        "texture_complexity": 0.000771392290964912
+      }
+    },
+    {
+      "condition": "underexposed",
+      "quality_score": 24.71,
+      "raw_prediction": 23.5253,
+      "analytics_readiness_score": 0.0,
+      "readiness_status": "CRITICAL / REJECT",
+      "issue_count": 3,
+      "primary_issue": "severe_blur",
+      "issues": [
+        {
+          "type": "severe_blur",
+          "severity": "critical",
+          "confidence": 1.0,
+          "metric": "laplacian_variance",
+          "value": 8.72,
+          "threshold": 15.0
+        },
+        {
+          "type": "underexposure",
+          "severity": "critical",
+          "confidence": 1.0,
+          "metric": "dark_pixel_ratio",
+          "value": 100.0,
+          "threshold": 50.0
+        },
+        {
+          "type": "severe_visual_degradation",
+          "severity": "critical",
+          "confidence": 1.0,
+          "metric": "degradation_signal_count",
+          "value": 5.0,
+          "threshold": 3.0
+        }
+      ],
+      "model_features": {
+        "brightness": 13.923369738520408,
+        "contrast": 9.964990091115785,
+        "sharpness": 17.101522640306122,
+        "saturation": 44.41133211096939,
+        "edge_density": 0.0,
+        "noise_estimate": 0.0,
+        "entropy": 1.9371947050094604,
+        "colorfulness": 4.7316384092366786,
+        "luminance_p10": 0.0,
+        "luminance_p90": 22.0,
+        "dark_pixel_pct": 100.0,
+        "bright_pixel_pct": 0.0,
+        "luminance_median": 22.0,
+        "gradient_magnitude": 5.356794867674875,
+        "dynamic_range": 22.0,
+        "percentile_range": 22.0,
+        "noise_to_signal": 0.0,
+        "channel_std": 1.075472755741858,
+        "hue_entropy": 2.4178686141967773,
+        "texture_complexity": 0.6189520161903936
+      }
+    },
+    {
+      "condition": "overexposed",
+      "quality_score": 66.68,
+      "raw_prediction": 65.5179,
+      "analytics_readiness_score": 21.68,
+      "readiness_status": "NOT READY",
+      "issue_count": 2,
+      "primary_issue": "overexposure",
+      "issues": [
+        {
+          "type": "overexposure",
+          "severity": "critical",
+          "confidence": 1.0,
+          "metric": "bright_pixel_ratio",
+          "value": 67.1,
+          "threshold": 30.0
+        },
+        {
+          "type": "potential_visual_defect",
+          "severity": "high",
+          "confidence": 0.85,
+          "metric": "visual_anomaly_signal_count",
+          "value": 2.0,
+          "threshold": 2.0
+        }
+      ],
+      "model_features": {
+        "brightness": 187.0741589604592,
+        "contrast": 96.10285360628626,
+        "sharpness": 970.054955038812,
+        "saturation": 12.306381536989797,
+        "edge_density": 0.014588647959183673,
+        "noise_estimate": 0.0,
+        "entropy": 2.3414692878723145,
+        "colorfulness": 9.793524173555559,
+        "luminance_p10": 48.0,
+        "luminance_p90": 255.0,
+        "dark_pixel_pct": 0.0,
+        "bright_pixel_pct": 66.90051020408163,
+        "luminance_median": 255.0,
+        "gradient_magnitude": 30.09069602567811,
+        "dynamic_range": 209.0,
+        "percentile_range": 207.0,
+        "noise_to_signal": 0.0,
+        "channel_std": 0.44070318016932786,
+        "hue_entropy": 3.281017303466797,
+        "texture_complexity": 0.24005678766767907
+      }
+    },
+    {
+      "condition": "noisy",
+      "quality_score": 29.55,
+      "raw_prediction": 30.1572,
+      "analytics_readiness_score": 0.0,
+      "readiness_status": "CRITICAL / REJECT",
+      "issue_count": 2,
+      "primary_issue": "underexposure",
+      "issues": [
+        {
+          "type": "underexposure",
+          "severity": "high",
+          "confidence": 1.0,
+          "metric": "dark_pixel_ratio",
+          "value": 23.72,
+          "threshold": 25.0
+        },
+        {
+          "type": "image_noise",
+          "severity": "critical",
+          "confidence": 1.0,
+          "metric": "noise_estimate",
+          "value": 118.61,
+          "threshold": 35.0
+        }
+      ],
+      "model_features": {
+        "brightness": 124.6473612882653,
+        "contrast": 76.57349494285191,
+        "sharpness": 7765.698116599197,
+        "saturation": 124.19036989795919,
+        "edge_density": 0.20176977040816327,
+        "noise_estimate": 80.0604,
+        "entropy": 7.337264537811279,
+        "colorfulness": 57.64935773338696,
+        "luminance_p10": 13.0,
+        "luminance_p90": 203.0,
+        "dark_pixel_pct": 24.94220344387755,
+        "bright_pixel_pct": 0.7493622448979591,
+        "luminance_median": 161.0,
+        "gradient_magnitude": 108.11071936378094,
+        "dynamic_range": 203.0,
+        "percentile_range": 190.0,
+        "noise_to_signal": 0.642295185173223,
+        "channel_std": 8.099166316687477,
+        "hue_entropy": 7.3532304763793945,
+        "texture_complexity": 1.8771138954660416
+      }
+    },
+    {
+      "condition": "severely_degraded",
+      "quality_score": 13.74,
+      "raw_prediction": 12.0304,
+      "analytics_readiness_score": 0.0,
+      "readiness_status": "CRITICAL / REJECT",
+      "issue_count": 3,
+      "primary_issue": "underexposure",
+      "issues": [
+        {
+          "type": "underexposure",
+          "severity": "critical",
+          "confidence": 1.0,
+          "metric": "dark_pixel_ratio",
+          "value": 99.76,
+          "threshold": 50.0
+        },
+        {
+          "type": "image_noise",
+          "severity": "high",
+          "confidence": 1.0,
+          "metric": "noise_estimate",
+          "value": 23.72,
+          "threshold": 15.0
+        },
+        {
+          "type": "severe_visual_degradation",
+          "severity": "critical",
+          "confidence": 1.0,
+          "metric": "degradation_signal_count",
+          "value": 3.0,
+          "threshold": 3.0
+        }
+      ],
+      "model_features": {
+        "brightness": 14.489317602040817,
+        "contrast": 3.4881366518802226,
+        "sharpness": 245.38841205256918,
+        "saturation": 114.96077806122449,
+        "edge_density": 0.0,
+        "noise_estimate": 14.825999999999999,
+        "entropy": 3.847533702850342,
+        "colorfulness": 8.286997471256964,
+        "luminance_p10": 10.0,
+        "luminance_p90": 19.0,
+        "dark_pixel_pct": 99.98804209183673,
+        "bright_pixel_pct": 0.0,
+        "luminance_median": 14.0,
+        "gradient_magnitude": 14.93295731161116,
+        "dynamic_range": 11.0,
+        "percentile_range": 9.0,
+        "noise_to_signal": 1.0232365945178648,
+        "channel_std": 0.007346815491226131,
+        "hue_entropy": 7.077422142028809,
+        "texture_complexity": 4.800019586651714
+      }
+    }
+  ]
+}

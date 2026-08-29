@@ -562,3 +562,152 @@ class TestFeatureImportance:
             assert item["importance"] > 0, (
                 f"Feature {item['feature']} has zero importance"
             )
+
+
+# ------------------------------------------------------------------
+# TASK 8: Controlled-condition robustness
+# ------------------------------------------------------------------
+class TestControlledConditions:
+    """Verify controlled-condition evaluation produces valid, differentiated results."""
+
+    def test_controlled_condition_results_csv_exists(self):
+        """The controlled-condition results CSV should exist."""
+        csv_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_controlled_condition_results.csv"
+        assert csv_path.exists(), f"Controlled-condition results not found: {csv_path}"
+
+    def test_controlled_condition_results_json_exists(self):
+        """The controlled-condition details JSON should exist."""
+        json_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_controlled_condition_details.json"
+        assert json_path.exists(), f"Controlled-condition details not found: {json_path}"
+
+    def test_all_six_conditions_present(self):
+        """All six controlled conditions should be in the results."""
+        json_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_controlled_condition_details.json"
+        with open(json_path) as f:
+            data = json.load(f)
+        conditions = {c["condition"] for c in data["conditions"]}
+        expected = {"clean", "blurred", "underexposed", "overexposed", "noisy", "severely_degraded"}
+        assert conditions == expected, f"Expected conditions {expected}, got {conditions}"
+
+    def test_quality_scores_numeric_and_in_range(self):
+        """All quality scores should be numeric and within [0, 100]."""
+        json_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_controlled_condition_details.json"
+        with open(json_path) as f:
+            data = json.load(f)
+        for c in data["conditions"]:
+            qs = c["quality_score"]
+            assert isinstance(qs, (int, float)), f"Quality score not numeric for {c['condition']}: {qs}"
+            assert 0 <= qs <= 100, f"Quality score out of range for {c['condition']}: {qs}"
+
+    def test_readiness_scores_numeric_and_in_range(self):
+        """All readiness scores should be numeric and within [0, 100]."""
+        json_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_controlled_condition_details.json"
+        with open(json_path) as f:
+            data = json.load(f)
+        for c in data["conditions"]:
+            rs = c["analytics_readiness_score"]
+            assert isinstance(rs, (int, float)), f"Readiness score not numeric for {c['condition']}: {rs}"
+            assert 0 <= rs <= 100, f"Readiness score out of range for {c['condition']}: {rs}"
+
+    def test_issue_confidence_in_valid_range(self):
+        """All issue confidence values should be within [0, 1]."""
+        json_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_controlled_condition_details.json"
+        with open(json_path) as f:
+            data = json.load(f)
+        for c in data["conditions"]:
+            for issue in c["issues"]:
+                conf = issue["confidence"]
+                assert 0.0 <= conf <= 1.0, (
+                    f"Confidence out of range for {c['condition']}/{issue['type']}: {conf}"
+                )
+
+    def test_conditions_produce_different_quality_scores(self):
+        """Different conditions should produce different quality scores."""
+        json_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_controlled_condition_details.json"
+        with open(json_path) as f:
+            data = json.load(f)
+        scores = [c["quality_score"] for c in data["conditions"]]
+        unique_scores = set(round(s, 1) for s in scores)
+        assert len(unique_scores) > 1, (
+            f"All conditions produce the same quality score: {scores}"
+        )
+
+    def test_conditions_produce_different_readiness_scores(self):
+        """Different conditions should produce different readiness scores."""
+        json_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_controlled_condition_details.json"
+        with open(json_path) as f:
+            data = json.load(f)
+        scores = [c["analytics_readiness_score"] for c in data["conditions"]]
+        unique_scores = set(round(s, 1) for s in scores)
+        assert len(unique_scores) > 1, (
+            f"All conditions produce the same readiness score: {scores}"
+        )
+
+    def test_blur_condition_detects_blur_issue(self):
+        """The blur condition should detect a blur-related issue."""
+        json_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_controlled_condition_details.json"
+        with open(json_path) as f:
+            data = json.load(f)
+        blur = [c for c in data["conditions"] if c["condition"] == "blurred"][0]
+        issue_types = {i["type"] for i in blur["issues"]}
+        blur_detected = any("blur" in t or "sharpness" in t for t in issue_types)
+        assert blur_detected, f"Blur condition should detect blur issue, got: {issue_types}"
+
+    def test_overexposure_condition_detects_overexposure(self):
+        """The overexposure condition should detect overexposure."""
+        json_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_controlled_condition_details.json"
+        with open(json_path) as f:
+            data = json.load(f)
+        over = [c for c in data["conditions"] if c["condition"] == "overexposed"][0]
+        issue_types = {i["type"] for i in over["issues"]}
+        over_detected = any("overexposure" in t for t in issue_types)
+        assert over_detected, f"Overexposure condition should detect overexposure, got: {issue_types}"
+
+    def test_severely_degraded_has_lowest_or_tied_quality(self):
+        """Severe degradation should have among the lowest quality scores."""
+        json_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_controlled_condition_details.json"
+        with open(json_path) as f:
+            data = json.load(f)
+        severe = [c for c in data["conditions"] if c["condition"] == "severely_degraded"][0]
+        all_scores = [c["quality_score"] for c in data["conditions"]]
+        # Severe should be in the bottom 3
+        sorted_scores = sorted(all_scores)
+        assert severe["quality_score"] <= sorted_scores[2], (
+            f"Severe degradation score {severe['quality_score']} should be in bottom 3, "
+            f"sorted: {sorted_scores}"
+        )
+
+    def test_readiness_responds_to_issues(self):
+        """Conditions with more issues should generally have lower readiness."""
+        json_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_controlled_condition_details.json"
+        with open(json_path) as f:
+            data = json.load(f)
+        clean = [c for c in data["conditions"] if c["condition"] == "clean"][0]
+        severe = [c for c in data["conditions"] if c["condition"] == "severely_degraded"][0]
+        # Clean should have higher readiness than severe degradation
+        assert clean["analytics_readiness_score"] >= severe["analytics_readiness_score"], (
+            f"Clean readiness ({clean['analytics_readiness_score']}) should be >= "
+            f"severe ({severe['analytics_readiness_score']})"
+        )
+
+    def test_model_version_in_controlled_results(self):
+        """Controlled-condition results should reference the current model version."""
+        json_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_controlled_condition_details.json"
+        with open(json_path) as f:
+            data = json.load(f)
+        assert "model_version" in data, "Missing model_version in controlled-condition results"
+        assert data["model_version"] == "v4.0.0", (
+            f"Expected model version v4.0.0, got {data['model_version']}"
+        )
+
+    def test_controlled_condition_report_exists(self):
+        """The controlled-condition robustness report should exist."""
+        md_path = Path(__file__).resolve().parent.parent.parent / "benchmark" / "smart_city" / "phase10_controlled_condition_report.md"
+        assert md_path.exists(), f"Controlled-condition report not found: {md_path}"
+        # Check it has content
+        with open(md_path) as f:
+            content = f.read()
+        assert len(content) > 500, "Report should have substantial content"
+        assert "clean" in content.lower(), "Report should mention clean condition"
+        assert "blur" in content.lower(), "Report should mention blur condition"
+        assert "overexposure" in content.lower() or "overexposed" in content.lower(), "Report should mention overexposure"

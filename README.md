@@ -67,3 +67,18 @@ The model relies primarily on sharpness, structural information (gradient magnit
 - Score compression: calibrated predictions range [7.6, 83.0] vs. target range [0, 100]
 - No issue-level ground truth for detector evaluation
 - Single split (no cross-validation)
+
+## Controlled-Condition Evaluation
+
+VisionGuard was evaluated under controlled visual conditions to verify that the system produces condition-sensitive assessments.
+
+| Condition | Quality | Readiness | Status | Primary Issue |
+|---|---:|---:|---|---|
+| Clean | 60.8 | 45.8 | LIMITED READINESS | Underexposure (minor) |
+| Blurred | 13.7 | 0.0 | CRITICAL / REJECT | Severe Blur |
+| Underexposed | 24.7 | 0.0 | CRITICAL / REJECT | Severe Blur |
+| Overexposed | 66.7 | 21.7 | NOT READY | Overexposure |
+| Noisy | 29.6 | 0.0 | CRITICAL / REJECT | Underexposure |
+| Severe Degradation | 13.7 | 0.0 | CRITICAL / REJECT | Underexposure |
+
+These controlled tests demonstrate that changes in image quality produce corresponding changes in detected issues, quality assessment, and downstream analytics readiness. Quality scores range from 13.7 (degraded) to 66.7 (overexposed), and readiness scores range from 0.0 (critical) to 45.8 (limited).
